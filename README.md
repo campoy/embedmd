@@ -1,15 +1,21 @@
 # embedmd
 
-embedmd parses all the .md files in a given directory looking for embedmd
-commands. For every one of the commands it extracts the code and embeds it
-as markdown code right below the command.
+Are you tired of copy pasting your code into your `README.md` file, just to
+forget about it later on and have unsynced copies? Or even worse, code
+that does not even compile?
 
-The command format for embedmd follows the markdown comments syntax, which
-makes it invisible while rendering. This also allows to keep a reference to
-the origin of the embedded code, therefore providing a way to update the
-embedded copy if the original file changes.
+Then `embedmd` is for you!
 
-The format of an embedmd command is:
+`embedmd` parses all the .md files in a given directory looking for
+_embedmd_commands_. The command format for `embedmd` follows the markdown
+comments syntax, which makes it invisible while rendering. This also
+allows to keep a reference to the origin of the embedded code, therefore
+providing a way to update the embedded copy if the original file changes.
+
+For every one of the commands `embedmd` extracts the corresponding piece
+of code and embeds it as markdown code block.
+
+The format of an `embedmd` command is:
 
 ```markdown
     [embedmd]:# (filename language /start regexp/ /end regexp/)
