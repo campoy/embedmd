@@ -1,3 +1,5 @@
+![build status](https://travis-ci.com/campoy/embedmd.svg?token=Uow5Jg7BE2k5XX3pYsx5&branch=master)
+
 # embedmd
 
 Are you tired of copy pasting your code into your `README.md` file, just to
