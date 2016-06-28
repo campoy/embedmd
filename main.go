@@ -13,14 +13,14 @@
 
 // embedmd
 //
-// embedmd parses all the .md files in a given directory looking for embedmd
-// commands. For every one of the commands it extracts the code and embeds it
-// as markdown code right below the command.
+// embedmd embeds files or fractions of files into markdown files.
+// It does so by searching embedmd commands, which are a subset of the
+// markdown syntax for comments. This means they are invisible when
+// markdown is rendered, so they can be kept in the file as pointers
+// to the origin of the embedded text.
 //
-// The command format for embedmd follows the markdown comments syntax, which
-// makes it invisible while rendering. This also allows to keep a reference to
-// the origin of the embedded code, therefore providing a way to update the
-// embedded copy if the original file changes.
+// The command receives a list of markdown files, if none is given it
+// reads from the standard input.
 //
 // The format of an embedmd command is:
 //
@@ -60,55 +60,48 @@ import (
 	"bufio"
 	"bytes"
 	"errors"
+	"flag"
 	"fmt"
 	"io"
 	"io/ioutil"
-	"log"
 	"os"
 	"path/filepath"
 	"regexp"
 	"strings"
 )
 
+func usage() {
+	fmt.Fprintf(os.Stderr, "usage: embedmd [flags] [path ...]\n")
+	flag.PrintDefaults()
+	os.Exit(2)
+}
+
 func main() {
-	paths := os.Args[1:]
-	if len(paths) == 0 {
-		paths = append(paths, ".")
-	}
+	rewrite := flag.Bool("w", false, "write result to (markdown) file instead of stdout")
+	flag.Usage = usage
+	flag.Parse()
 
-	for _, path := range paths {
-		fs, err := markdownFiles(path)
-		if err != nil {
-			log.Printf("could not list files in %s: %v", path, err)
-		}
-
-		for _, f := range fs {
-			if err := process(f); err != nil {
-				log.Printf("could not process %s: %v", f, err)
-			}
-		}
+	err := embed(flag.Args(), *rewrite)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		os.Exit(2)
 	}
 }
 
-func markdownFiles(path string) ([]string, error) {
-	d, err := os.Open(path)
-	if err != nil {
-		return nil, err
-	}
-	defer d.Close()
-
-	fs, err := d.Readdir(-1)
-	if err != nil {
-		return nil, err
+func embed(paths []string, rewrite bool) error {
+	if len(flag.Args()) == 0 {
+		if rewrite {
+			return fmt.Errorf("error: cannot use -w with standard input")
+		}
+		return process(os.Stdout, os.Stdin)
 	}
 
-	var names []string
-	for _, f := range fs {
-		if name := f.Name(); f.Mode().IsRegular() && filepath.Ext(name) == ".md" {
-			names = append(names, name)
+	for _, path := range paths {
+		if err := processFile(path, rewrite); err != nil {
+			return fmt.Errorf("%s: %v\n", path, err)
 		}
 	}
-	return names, nil
+	return nil
 }
 
 type file interface {
@@ -121,15 +114,35 @@ var openFile = func(name string) (file, error) {
 	return os.OpenFile(name, os.O_RDWR, 0666)
 }
 
-func process(path string) error {
+func processFile(path string, rewrite bool) error {
+	if filepath.Ext(path) != ".md" {
+		return fmt.Errorf("not a markdown file")
+	}
+
 	f, err := openFile(path)
 	if err != nil {
-		return fmt.Errorf("could not open %s: %v", path, err)
+		return fmt.Errorf("could not open: %v", err)
 	}
 	defer f.Close()
 
-	s := bufio.NewScanner(f)
-	out := new(bytes.Buffer)
+	buf := new(bytes.Buffer)
+	if err := process(buf, f); err != nil {
+		return err
+	}
+
+	if rewrite {
+		_, err = f.WriteAt(buf.Bytes(), 0)
+		if err != nil {
+			return fmt.Errorf("could not write: %v", err)
+		}
+	} else {
+		io.Copy(os.Stdout, buf)
+	}
+	return nil
+}
+
+func process(out io.Writer, in io.Reader) error {
+	s := bufio.NewScanner(in)
 	nextToCmd, skippingCode := false, false
 	for line := 1; s.Scan(); line++ {
 		text := s.Text()
@@ -161,8 +174,6 @@ func process(path string) error {
 	if err := s.Err(); err != nil {
 		return fmt.Errorf("could not scan: %v", err)
 	}
-
-	_, err = f.WriteAt(out.Bytes(), 0)
 	return nil
 }
 
