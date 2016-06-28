@@ -192,8 +192,8 @@ func TestProcess(t *testing.T) {
 	defer func(f func(string) (file, error)) { openFile = f }(openFile)
 
 	openFile = func(string) (file, error) { return nil, os.ErrNotExist }
-	err := process("something.md")
-	eqErr(t, "no files", err, "could not open something.md: file does not exist")
+	err := processFile("something.md", true)
+	eqErr(t, "no files", err, "could not open: file does not exist")
 
 	tc := []struct {
 		name  string
@@ -245,7 +245,7 @@ func TestProcess(t *testing.T) {
 		f := newFakeFile(tt.in)
 		openFile = func(name string) (file, error) { return f, nil }
 
-		err := process("anyfile.md")
+		err := processFile("anyfile.md", true)
 		if !eqErr(t, tt.name, err, tt.err) {
 			continue
 		}

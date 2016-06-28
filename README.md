@@ -6,14 +6,14 @@ that does not even compile?
 
 Then `embedmd` is for you!
 
-`embedmd` parses all the .md files in a given directory looking for
-_embedmd_commands_. The command format for `embedmd` follows the markdown
-comments syntax, which makes it invisible while rendering. This also
-allows to keep a reference to the origin of the embedded code, therefore
-providing a way to update the embedded copy if the original file changes.
+`embedmd` embeds files or fractions of files into markdown files. It does
+so by searching `embedmd` commands, which are a subset of the markdown
+syntax for comments. This means they are invisible when markdown is
+rendered, so they can be kept in the file as pointers to the origin of
+the embedded text.
 
-For every one of the commands `embedmd` extracts the corresponding piece
-of code and embeds it as markdown code block.
+The command receives a list of markdown files, if none is given it reads
+from the standard input.
 
 The format of an `embedmd` command is:
 
@@ -118,7 +118,7 @@ And finally, the `main` function:
 [embedmd]:# (hello.go /func main/ $)
 ```
 
-Executing `embedmd` in the directory containing `docs.md` will modify `docs.md`
+Executing `embedmd -w docs.md` will modify `docs.md`
 and add the corresponding code snippets, as shown in
 [sample/result.md](sample/result.md).
 
