@@ -109,8 +109,8 @@ Followed by an `import` statement:
 
 And finally, the `main` function:
 
-[embedmd]:# (hello.go /func main/ $)```
-
+[embedmd]:# (hello.go /func main/ $)
+```
 
 Executing `embedmd` in the directory containing `docs.md` will modify `docs.md`
 and add the corresponding code snippets, as shown in

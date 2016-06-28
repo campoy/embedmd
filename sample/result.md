@@ -43,5 +43,9 @@ You can also see how to get the current time:
 ```go
 time.Now()
 ```
+
+You can also have some extra code independent from `embedmd`
+
+```python
         print 'hello'
 ```
