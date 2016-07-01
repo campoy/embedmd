@@ -107,6 +107,7 @@ func embed(paths []string, rewrite bool) error {
 type file interface {
 	io.ReadCloser
 	io.WriterAt
+	Truncate(int64) error
 }
 
 // replaced by testing functions.
@@ -131,13 +132,14 @@ func processFile(path string, rewrite bool) error {
 	}
 
 	if rewrite {
-		_, err = f.WriteAt(buf.Bytes(), 0)
+		n, err := f.WriteAt(buf.Bytes(), 0)
 		if err != nil {
 			return fmt.Errorf("could not write: %v", err)
 		}
-	} else {
-		io.Copy(os.Stdout, buf)
+		return f.Truncate(int64(n))
 	}
+
+	io.Copy(os.Stdout, buf)
 	return nil
 }
 
