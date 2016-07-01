@@ -22,7 +22,7 @@ func main() {
 
 You always start with a `package` statement like:
 
-[embedmd]:# (hello.go /package .*\n/)
+[embedmd]:# (hello.go /package.*/)
 ```go
 package main
 ```

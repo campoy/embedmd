@@ -86,6 +86,10 @@ Given the two files in [sample](sample):
 *hello.go:*
 [embedmd]:# (sample/hello.go)
 ```go
+// Copyright 2016 Google Inc. All rights reserved.
+// Use of this source code is governed by the Apache 2.0
+// license that can be found in the LICENSE file.
+
 package main
 
 import (
@@ -99,7 +103,7 @@ func main() {
 ```
 
 *docs.md*
-[embedmd]:# (sample/docs.md markdown)
+[embedmd]:# (sample/docs.md markdown /./ /embedmd.*time.*/)
 ```markdown
 # A hello world in Go
 
@@ -109,15 +113,15 @@ Go is very simple, here you can see a whole "hello, world" program.
 
 You always start with a `package` statement like:
 
-[embedmd]:# (hello.go /pack/)
+[embedmd]:# (hello.go /package.*/)
 
 Followed by an `import` statement:
 
 [embedmd]:# (hello.go /import/ /\)/)
 
-And finally, the `main` function:
+You can also see how to get the current time:
 
-[embedmd]:# (hello.go /func main/ $)
+[embedmd]:# (hello.go /time\.[^)]*\)/)
 ```
 
 Executing `embedmd -w docs.md` will modify `docs.md`
