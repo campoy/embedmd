@@ -296,6 +296,7 @@ type fakeFile struct {
 }
 
 func (f *fakeFile) WriteAt(b []byte, offset int64) (int, error) { return f.buf.Write(b) }
+func (f *fakeFile) Truncate(int64) error                        { return nil }
 
 func newFakeFile(s string) *fakeFile {
 	return &fakeFile{ReadCloser: ioutil.NopCloser(strings.NewReader(s))}
