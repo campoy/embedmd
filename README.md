@@ -37,7 +37,7 @@ that matches `/regexp/`:
 To embed the whole line matching a regular expression you can use:
 
 ```markdown
-    [embedmd]:# (filename language /.*regexp.*\n/)
+    [embedmd]:# (filename language /.*regexp.*/)
 ```
 
 If you want to embed from a point to the end you should use:
