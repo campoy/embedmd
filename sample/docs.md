@@ -6,7 +6,7 @@ Go is very simple, here you can see a whole "hello, world" program.
 
 You always start with a `package` statement like:
 
-[embedmd]:# (hello.go /package .*\n/)
+[embedmd]:# (hello.go /package.*/)
 
 Followed by an `import` statement:
 
