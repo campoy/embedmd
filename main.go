@@ -73,7 +73,6 @@ import (
 func usage() {
 	fmt.Fprintf(os.Stderr, "usage: embedmd [flags] [path ...]\n")
 	flag.PrintDefaults()
-	os.Exit(2)
 }
 
 func main() {
