@@ -20,7 +20,7 @@ from the standard input.
 The format of an `embedmd` command is:
 
 ```markdown
-    [embedmd]:# (filename language /start regexp/ /end regexp/)
+[embedmd]:# (filename language /start regexp/ /end regexp/)
 ```
 
 The embedded code will be extracted from the file filename, starting at the
@@ -31,25 +31,25 @@ Ommiting the the second regular expression will embed only the piece of text
 that matches `/regexp/`:
 
 ```markdown
-    [embedmd]:# (filename language /regexp/)
+[embedmd]:# (filename language /regexp/)
 ```
 
 To embed the whole line matching a regular expression you can use:
 
 ```markdown
-    [embedmd]:# (filename language /.*regexp.*/)
+[embedmd]:# (filename language /.*regexp.*/)
 ```
 
 If you want to embed from a point to the end you should use:
 
 ```markdown
-    [embedmd]:# (filename language /start regexp/ $)
+[embedmd]:# (filename language /start regexp/ $)
 ```
 
 Finally you can embed a whole file by omitting both regular expressions:
 
 ```markdown
-    [embedmd]:# (filename language)
+[embedmd]:# (filename language)
 ```
 
 You can ommit the language in any of the previous commands, and the extension
@@ -60,7 +60,7 @@ name of the language `go`, this will fail with other fileslike `.md` whose
 language name is `markdown`.
 
 ```markdown
-    [embedmd]:# (file.ext)
+[embedmd]:# (file.ext)
 ```
 
 ## Installation
@@ -70,7 +70,7 @@ by following [these instructions](golang.org/doc/install.html)) you can
 install it with go get:
 
 ```
-    go get github.com/campoy/embedmd
+go get github.com/campoy/embedmd
 ```
 
 This will download the code, compile it, and leave an `embedmd` binary
@@ -84,6 +84,7 @@ every OS and architecture out there ... _eventually_.
 Given the two files in [sample](sample):
 
 *hello.go:*
+
 [embedmd]:# (sample/hello.go)
 ```go
 // Copyright 2016 Google Inc. All rights reserved.
@@ -102,7 +103,8 @@ func main() {
 }
 ```
 
-*docs.md*
+*docs.md:*
+
 [embedmd]:# (sample/docs.md markdown /./ /embedmd.*time.*/)
 ```markdown
 # A hello world in Go
