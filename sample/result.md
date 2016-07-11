@@ -47,5 +47,5 @@ time.Now()
 You can also have some extra code independent from `embedmd`
 
 ```python
-        print 'hello'
+print 'hello'
 ```

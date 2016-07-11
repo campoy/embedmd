@@ -19,5 +19,5 @@ You can also see how to get the current time:
 You can also have some extra code independent from `embedmd`
 
 ```python
-        print 'hello'
+print 'hello'
 ```
