@@ -26,9 +26,11 @@
 //
 //     [embedmd]:# (pathOrURL language /start regexp/ /end regexp/)
 //
-// The embedded code will be extracted from the file at `pathOrURL`.
-// If the pathOrURL starts with http:// or https:// the tool will
-// fetch the content in that url.
+// The embedded code will be extracted from the file at pathOrURL,
+// which can either be a relative path to a file in the local file
+// system (using always forward slashes as directory separator) or
+// a url starting with http:// or https://.
+// If the pathOrURL is a url the tool will fetch the content in that url.
 // The embedded content starts at the first line that matches /start regexp/
 // and finishes at the first line matching /end regexp/.
 //
@@ -215,7 +217,7 @@ var (
 
 func readContents(path string) ([]byte, error) {
 	if !strings.HasPrefix(path, "http://") && !strings.HasPrefix(path, "https://") {
-		return readFile(path)
+		return readFile(filepath.FromSlash(path))
 	}
 
 	res, err := httpGet(path)
