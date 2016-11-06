@@ -18,7 +18,6 @@ import (
 	"io"
 	"io/ioutil"
 	"net/http"
-	"net/http/httptest"
 	"net/url"
 	"os"
 	"strings"
@@ -344,12 +343,21 @@ func fakeHTTPGet(urls map[string][]byte) func(string) (*http.Response, error) {
 		if err != nil {
 			return nil, err
 		}
-		rec := httptest.NewRecorder()
-		if b, ok := urls[path]; ok {
-			rec.Write(b)
-		} else {
-			http.Error(rec, "Not Found", http.StatusNotFound)
+
+		// I could use httptest.ResponseRecorder but the method Result is only
+		// available since go1.7.
+		b, ok := urls[path]
+		if !ok {
+			return &http.Response{
+				Status:     "Not Found",
+				StatusCode: http.StatusNotFound,
+				Body:       ioutil.NopCloser(strings.NewReader("Not Found")),
+			}, nil
 		}
-		return rec.Result(), nil
+		return &http.Response{
+			Status:     "OK",
+			StatusCode: http.StatusOK,
+			Body:       ioutil.NopCloser(bytes.NewReader(b)),
+		}, nil
 	}
 }
