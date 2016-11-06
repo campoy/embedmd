@@ -20,36 +20,38 @@ from the standard input.
 The format of an `embedmd` command is:
 
 ```markdown
-[embedmd]:# (filename language /start regexp/ /end regexp/)
+[embedmd]:# (pathOrURL language /start regexp/ /end regexp/)
 ```
 
-The embedded code will be extracted from the file filename, starting at the
-first line that matches `/start regexp/` and finishing at the first line
-matching `/end regexp/`.
+The embedded code will be extracted from the file at `pathOrURL`.
+If the `pathOrURL` starts with `http://` or `https://` the tool will
+fetch the content in that url.
+The embedded content starts at the first line that matches `/start regexp/`
+and finishes at the first line matching `/end regexp/`.
 
 Ommiting the the second regular expression will embed only the piece of text
 that matches `/regexp/`:
 
 ```markdown
-[embedmd]:# (filename language /regexp/)
+[embedmd]:# (pathOrURL language /regexp/)
 ```
 
 To embed the whole line matching a regular expression you can use:
 
 ```markdown
-[embedmd]:# (filename language /.*regexp.*/)
+[embedmd]:# (pathOrURL language /.*regexp.*/)
 ```
 
 If you want to embed from a point to the end you should use:
 
 ```markdown
-[embedmd]:# (filename language /start regexp/ $)
+[embedmd]:# (pathOrURL language /start regexp/ $)
 ```
 
 Finally you can embed a whole file by omitting both regular expressions:
 
 ```markdown
-[embedmd]:# (filename language)
+[embedmd]:# (pathOrURL language)
 ```
 
 You can ommit the language in any of the previous commands, and the extension
