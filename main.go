@@ -24,28 +24,30 @@
 //
 // The format of an embedmd command is:
 //
-//     [embedmd]:# (filename language /start regexp/ /end regexp/)
+//     [embedmd]:# (pathOrURL language /start regexp/ /end regexp/)
 //
-// The embedded code will be extracted from the file filename, starting at the
-// piece of text matching /start regexp/ and finishing at the match of
-// /end regexp/.
+// The embedded code will be extracted from the file at `pathOrURL`.
+// If the pathOrURL starts with http:// or https:// the tool will
+// fetch the content in that url.
+// The embedded content starts at the first line that matches /start regexp/
+// and finishes at the first line matching /end regexp/.
 //
 // Ommiting the the second regular expression will embed only the piece of
 // text that matches /regexp/:
 //
-//     [embedmd]:# (filename language /regexp/)
+//     [embedmd]:# (pathOrURL language /regexp/)
 //
 // To embed the whole line matching a regular expression you can use:
 //
-//     [embedmd]:# (filename language /.*regexp.*\n/)
+//     [embedmd]:# (pathOrURL language /.*regexp.*\n/)
 //
 // If you want to embed from a point to the end you should use:
 //
-//     [embedmd]:# (filename language /start regexp/ $)
+//     [embedmd]:# (pathOrURL language /start regexp/ $)
 //
 // Finally you can embed a whole file by omitting both regular expressions:
 //
-//     [embedmd]:# (filename language)
+//     [embedmd]:# (pathOrURL language)
 //
 // You can ommit the language in any of the previous commands, and the extension
 // of the file will be used for the snippet syntax highlighting. Note that while
@@ -64,6 +66,7 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
+	"net/http"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -178,16 +181,13 @@ func process(out io.Writer, in io.Reader) error {
 	return nil
 }
 
-// replaced by testing functions.
-var readFile = ioutil.ReadFile
-
 func extractFromFile(w io.Writer, args string) error {
 	file, lang, start, end, err := parseArgs(args)
 	if err != nil {
 		return err
 	}
 
-	b, err := readFile(file)
+	b, err := readContents(file)
 	if err != nil {
 		return fmt.Errorf("could not read %s: %v", file, err)
 	}
@@ -205,6 +205,28 @@ func extractFromFile(w io.Writer, args string) error {
 	w.Write(b)
 	fmt.Fprintln(w, "```")
 	return nil
+}
+
+// replaced by testing functions.
+var (
+	readFile = ioutil.ReadFile
+	httpGet  = http.Get
+)
+
+func readContents(path string) ([]byte, error) {
+	if !strings.HasPrefix(path, "http://") && !strings.HasPrefix(path, "https://") {
+		return readFile(path)
+	}
+
+	res, err := httpGet(path)
+	if err != nil {
+		return nil, err
+	}
+	if res.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("status %s", res.Status)
+	}
+	defer res.Body.Close()
+	return ioutil.ReadAll(res.Body)
 }
 
 // fields returns a list of the groups of text separated by blanks,

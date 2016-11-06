@@ -17,6 +17,9 @@ import (
 	"bytes"
 	"io"
 	"io/ioutil"
+	"net/http"
+	"net/http/httptest"
+	"net/url"
 	"os"
 	"strings"
 	"testing"
@@ -56,6 +59,10 @@ func TestParseArgs(t *testing.T) {
 			in: "(foo.go /start/ $ extra)", err: "too many arguments"},
 		{name: "file name with directories",
 			in: "(foo/bar.go)", f: "foo/bar.go", l: "go"},
+		{name: "url",
+			in: "(http://golang.org/sample.go)", f: "http://golang.org/sample.go", l: "go"},
+		{name: "bad url",
+			in: "(http://golang:org:sample.go)", f: "http://golang:org:sample.go", l: "go"},
 	}
 
 	for _, tt := range tc {
@@ -190,6 +197,7 @@ func TestExtractFromFile(t *testing.T) {
 func TestProcess(t *testing.T) {
 	defer func(f func(string) ([]byte, error)) { readFile = f }(readFile)
 	defer func(f func(string) (file, error)) { openFile = f }(openFile)
+	defer func(f func(string) (*http.Response, error)) { httpGet = f }(httpGet)
 
 	openFile = func(string) (file, error) { return nil, os.ErrNotExist }
 	err := processFile("something.md", true)
@@ -199,6 +207,7 @@ func TestProcess(t *testing.T) {
 		name  string
 		in    string
 		files map[string][]byte
+		urls  map[string][]byte
 		out   string
 		err   string
 	}{
@@ -238,13 +247,40 @@ func TestProcess(t *testing.T) {
 				"```\n" +
 				"Yay!\n",
 		},
+		{
+			name: "embedding code from a URL",
+			in: "# This is some markdown\n" +
+				"[embedmd]:# (https://fakeurl.com/main.go)\n" +
+				"Yay!\n",
+			urls: map[string][]byte{"https://fakeurl.com/main.go": []byte(content)},
+			out: "# This is some markdown\n" +
+				"[embedmd]:# (https://fakeurl.com/main.go)\n" +
+				"```go\n" +
+				string(content) +
+				"```\n" +
+				"Yay!\n",
+		},
+		{
+			name: "embedding code from a URL not found",
+			in: "# This is some markdown\n" +
+				"[embedmd]:# (https://fakeurl.com/main.go)\n" +
+				"Yay!\n",
+			err: "could not read https://fakeurl.com/main.go: status Not Found at line 2",
+		},
+		{
+			name: "embedding code from a bad URL",
+			in: "# This is some markdown\n" +
+				"[embedmd]:# (https://fakeurl.com\\main.go)\n" +
+				"Yay!\n",
+			err: "could not read https://fakeurl.com\\main.go: parse https://fakeurl.com\\main.go: invalid character \"\\\\\" in host name at line 2",
+		},
 	}
 
 	for _, tt := range tc {
 		readFile = fakeReadFile(tt.files)
 		f := newFakeFile(tt.in)
 		openFile = func(name string) (file, error) { return f, nil }
-
+		httpGet = fakeHTTPGet(tt.urls)
 		err := processFile("anyfile.md", true)
 		if !eqErr(t, tt.name, err, tt.err) {
 			continue
@@ -261,7 +297,7 @@ func eqErr(t *testing.T, id string, err error, msg string) bool {
 		return false
 	}
 	if err != nil && msg != err.Error() {
-		t.Errorf("case [%s]: expected error message %q; but got %v", id, msg, err)
+		t.Errorf("case [%s]: expected error message %q; but got %q", id, msg, err)
 		return false
 	}
 	return true
@@ -300,4 +336,20 @@ func (f *fakeFile) Truncate(int64) error                        { return nil }
 
 func newFakeFile(s string) *fakeFile {
 	return &fakeFile{ReadCloser: ioutil.NopCloser(strings.NewReader(s))}
+}
+
+func fakeHTTPGet(urls map[string][]byte) func(string) (*http.Response, error) {
+	return func(path string) (*http.Response, error) {
+		_, err := url.Parse(path)
+		if err != nil {
+			return nil, err
+		}
+		rec := httptest.NewRecorder()
+		if b, ok := urls[path]; ok {
+			rec.Write(b)
+		} else {
+			http.Error(rec, "Not Found", http.StatusNotFound)
+		}
+		return rec.Result(), nil
+	}
 }
