@@ -222,10 +222,10 @@ func readContents(path string) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
+	defer res.Body.Close()
 	if res.StatusCode != http.StatusOK {
 		return nil, fmt.Errorf("status %s", res.Status)
 	}
-	defer res.Body.Close()
 	return ioutil.ReadAll(res.Body)
 }
 
