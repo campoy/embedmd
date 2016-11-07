@@ -20,6 +20,15 @@ func main() {
 }
 ```
 
+We can try to embed a file from a directory.
+
+[embedmd]:# (test/hello.go /func main/ $)
+```go
+func main() {
+	fmt.Println("Hello, there, it is", time.Now())
+}
+```
+
 You always start with a `package` statement like:
 
 [embedmd]:# (hello.go /package.*/)
