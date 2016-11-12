@@ -93,7 +93,7 @@ func main() {
 }
 
 func embed(paths []string, rewrite bool) error {
-	if len(flag.Args()) == 0 {
+	if len(paths) == 0 {
 		if rewrite {
 			return fmt.Errorf("error: cannot use -w with standard input")
 		}
@@ -102,7 +102,7 @@ func embed(paths []string, rewrite bool) error {
 
 	for _, path := range paths {
 		if err := processFile(path, rewrite); err != nil {
-			return fmt.Errorf("%s: %v\n", path, err)
+			return fmt.Errorf("%s:%v", path, err)
 		}
 	}
 	return nil
@@ -147,38 +147,97 @@ func processFile(path string, rewrite bool) error {
 	return nil
 }
 
+type textScanner interface {
+	Text() string
+	Scan() bool
+}
+
+type parsingState func(io.Writer, textScanner) (parsingState, error)
+
+func parsingText(out io.Writer, s textScanner) (parsingState, error) {
+	// print current line, then decide what to do based on the next one.
+	fmt.Fprintln(out, s.Text())
+	if !s.Scan() {
+		return nil, nil // end of file, which is fine.
+	}
+	switch line := s.Text(); {
+	case strings.HasPrefix(line, "[embedmd]:#"):
+		return parsingCmd, nil
+	case strings.HasPrefix(line, "```"):
+		return codeParser{print: true}.parse, nil
+	default:
+		return parsingText, nil
+	}
+}
+
+func parsingCmd(out io.Writer, s textScanner) (parsingState, error) {
+	line := s.Text()
+	fmt.Fprintln(out, line)
+	err := extractFromFile(out, strings.Split(line, "#")[1])
+	if err != nil {
+		return nil, err
+	}
+	if !s.Scan() {
+		return nil, nil // end of file, which is fine.
+	}
+	if strings.HasPrefix(s.Text(), "```") {
+		return codeParser{print: false}.parse, nil
+	}
+	return parsingText, nil
+}
+
+type codeParser struct{ print bool }
+
+func (c codeParser) parse(out io.Writer, s textScanner) (parsingState, error) {
+	if c.print {
+		fmt.Fprintln(out, s.Text())
+	}
+	if !s.Scan() {
+		return nil, fmt.Errorf("unbalanced code section")
+	}
+	if !strings.HasPrefix(s.Text(), "```") {
+		return c.parse, nil
+	}
+
+	// print the end of the code section if needed and go back to parsing text.
+	if c.print {
+		fmt.Fprintln(out, s.Text())
+	}
+	if !s.Scan() {
+		return nil, nil // end of file
+	}
+	return parsingText, nil
+}
+
+type countingScanner struct {
+	*bufio.Scanner
+	line int
+}
+
+func (c *countingScanner) Scan() bool {
+	b := c.Scanner.Scan()
+	if b {
+		c.line++
+	}
+	return b
+}
+
 func process(out io.Writer, in io.Reader) error {
-	s := bufio.NewScanner(in)
-	nextToCmd, skippingCode := false, false
-	for line := 1; s.Scan(); line++ {
-		text := s.Text()
-
-		// Ommit any code snippets right after a embedmd command.
-		if nextToCmd || skippingCode {
-			if strings.HasPrefix(text, "```") {
-				if skippingCode {
-					skippingCode = false
-					continue
-				}
-				skippingCode = true
-			}
-			nextToCmd = false
-		}
-		if !skippingCode {
-			fmt.Fprintln(out, text)
-
-			if strings.HasPrefix(text, "[embedmd]:#") {
-				err := extractFromFile(out, strings.Split(text, "#")[1])
-				if err != nil {
-					return fmt.Errorf("%v at line %d", err, line)
-				}
-				nextToCmd = true
-			}
+	s := &countingScanner{bufio.NewScanner(in), 0}
+	if !s.Scan() {
+		return nil
+	}
+	state := parsingText
+	var err error
+	for state != nil {
+		state, err = state(out, s)
+		if err != nil {
+			return fmt.Errorf("%d: %v", s.line, err)
 		}
 	}
 
 	if err := s.Err(); err != nil {
-		return fmt.Errorf("could not scan: %v", err)
+		return fmt.Errorf("%d: %v", s.line, err)
 	}
 	return nil
 }

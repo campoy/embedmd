@@ -193,7 +193,7 @@ func TestExtractFromFile(t *testing.T) {
 	}
 }
 
-func TestProcess(t *testing.T) {
+func TestEmbed(t *testing.T) {
 	defer func(f func(string) ([]byte, error)) { readFile = f }(readFile)
 	defer func(f func(string) (file, error)) { openFile = f }(openFile)
 	defer func(f func(string) (*http.Response, error)) { httpGet = f }(httpGet)
@@ -215,7 +215,7 @@ func TestProcess(t *testing.T) {
 			in: "# This is some markdown\n" +
 				"[embedmd]:# (code.go)\n" +
 				"Yay!\n",
-			err: "could not read code.go: file does not exist at line 2",
+			err: "file.md:2: could not read code.go: file does not exist",
 		},
 		{
 			name: "generating code for first time",
@@ -264,14 +264,27 @@ func TestProcess(t *testing.T) {
 			in: "# This is some markdown\n" +
 				"[embedmd]:# (https://fakeurl.com/main.go)\n" +
 				"Yay!\n",
-			err: "could not read https://fakeurl.com/main.go: status Not Found at line 2",
+			err: "file.md:2: could not read https://fakeurl.com/main.go: status Not Found",
 		},
 		{
 			name: "embedding code from a bad URL",
 			in: "# This is some markdown\n" +
 				"[embedmd]:# (https://fakeurl.com\\main.go)\n" +
 				"Yay!\n",
-			err: "could not read https://fakeurl.com\\main.go: parse https://fakeurl.com\\main.go: invalid character \"\\\\\" in host name at line 2",
+			err: "file.md:2: could not read https://fakeurl.com\\main.go: parse https://fakeurl.com\\main.go: invalid character \"\\\\\" in host name",
+		},
+		{
+			name: "ignore commands in code blocks",
+			in: "# This is some markdown\n" +
+				"```markdown\n" +
+				"[embedmd]:# (nothing.md)\n" +
+				"```\n" +
+				"Yay!\n",
+			out: "# This is some markdown\n" +
+				"```markdown\n" +
+				"[embedmd]:# (nothing.md)\n" +
+				"```\n" +
+				"Yay!\n",
 		},
 	}
 
@@ -280,7 +293,7 @@ func TestProcess(t *testing.T) {
 		f := newFakeFile(tt.in)
 		openFile = func(name string) (file, error) { return f, nil }
 		httpGet = fakeHTTPGet(tt.urls)
-		err := processFile("anyfile.md", true)
+		err := embed([]string{"file.md"}, true)
 		if !eqErr(t, tt.name, err, tt.err) {
 			continue
 		}
