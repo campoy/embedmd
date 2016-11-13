@@ -105,11 +105,11 @@ func embed(paths []string, rewrite, doDiff bool) error {
 			return fmt.Errorf("error: cannot use -w with standard input")
 		}
 		if !doDiff {
-			return process(os.Stdout, stdin)
+			return process(os.Stdout, stdin, "")
 		}
 
 		var out, in bytes.Buffer
-		if err := process(&out, io.TeeReader(stdin, &in)); err != nil {
+		if err := process(&out, io.TeeReader(stdin, &in), ""); err != nil {
 			return err
 		}
 		d, err := diff(in.Bytes(), out.Bytes())
@@ -151,7 +151,7 @@ func processFile(path string, rewrite, doDiff bool) error {
 	defer f.Close()
 
 	buf := new(bytes.Buffer)
-	if err := process(buf, f); err != nil {
+	if err := process(buf, f, filepath.Dir(path)); err != nil {
 		return err
 	}
 
@@ -184,9 +184,9 @@ type textScanner interface {
 	Scan() bool
 }
 
-type parsingState func(io.Writer, textScanner) (parsingState, error)
+type parsingState func(io.Writer, textScanner, string) (parsingState, error)
 
-func parsingText(out io.Writer, s textScanner) (parsingState, error) {
+func parsingText(out io.Writer, s textScanner, dir string) (parsingState, error) {
 	// print current line, then decide what to do based on the next one.
 	fmt.Fprintln(out, s.Text())
 	if !s.Scan() {
@@ -202,10 +202,10 @@ func parsingText(out io.Writer, s textScanner) (parsingState, error) {
 	}
 }
 
-func parsingCmd(out io.Writer, s textScanner) (parsingState, error) {
+func parsingCmd(out io.Writer, s textScanner, dir string) (parsingState, error) {
 	line := s.Text()
 	fmt.Fprintln(out, line)
-	err := extractFromFile(out, strings.Split(line, "#")[1])
+	err := extractFromFile(out, strings.Split(line, "#")[1], dir)
 	if err != nil {
 		return nil, err
 	}
@@ -220,7 +220,7 @@ func parsingCmd(out io.Writer, s textScanner) (parsingState, error) {
 
 type codeParser struct{ print bool }
 
-func (c codeParser) parse(out io.Writer, s textScanner) (parsingState, error) {
+func (c codeParser) parse(out io.Writer, s textScanner, dir string) (parsingState, error) {
 	if c.print {
 		fmt.Fprintln(out, s.Text())
 	}
@@ -254,7 +254,7 @@ func (c *countingScanner) Scan() bool {
 	return b
 }
 
-func process(out io.Writer, in io.Reader) error {
+func process(out io.Writer, in io.Reader, dir string) error {
 	s := &countingScanner{bufio.NewScanner(in), 0}
 	if !s.Scan() {
 		return nil
@@ -262,7 +262,7 @@ func process(out io.Writer, in io.Reader) error {
 	state := parsingText
 	var err error
 	for state != nil {
-		state, err = state(out, s)
+		state, err = state(out, s, dir)
 		if err != nil {
 			return fmt.Errorf("%d: %v", s.line, err)
 		}
@@ -274,13 +274,13 @@ func process(out io.Writer, in io.Reader) error {
 	return nil
 }
 
-func extractFromFile(w io.Writer, args string) error {
+func extractFromFile(w io.Writer, args, dir string) error {
 	file, lang, start, end, err := parseArgs(args)
 	if err != nil {
 		return err
 	}
 
-	b, err := readContents(file)
+	b, err := readContents(dir, file)
 	if err != nil {
 		return fmt.Errorf("could not read %s: %v", file, err)
 	}
@@ -306,9 +306,9 @@ var (
 	httpGet  = http.Get
 )
 
-func readContents(path string) ([]byte, error) {
+func readContents(dir, path string) ([]byte, error) {
 	if !strings.HasPrefix(path, "http://") && !strings.HasPrefix(path, "https://") {
-		return readFile(filepath.FromSlash(path))
+		return readFile(filepath.Join(dir, filepath.FromSlash(path)))
 	}
 
 	res, err := httpGet(path)
