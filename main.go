@@ -70,9 +70,15 @@ import (
 	"io/ioutil"
 	"net/http"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"regexp"
 	"strings"
+)
+
+var (
+	stdout io.Writer = os.Stdout
+	stdin  io.Reader = os.Stdin
 )
 
 func usage() {
@@ -82,26 +88,40 @@ func usage() {
 
 func main() {
 	rewrite := flag.Bool("w", false, "write result to (markdown) file instead of stdout")
+	doDiff := flag.Bool("d", false, "display diffs instead of rewriting files")
 	flag.Usage = usage
 	flag.Parse()
 
-	err := embed(flag.Args(), *rewrite)
+	err := embed(flag.Args(), *rewrite, *doDiff)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		os.Exit(2)
 	}
 }
 
-func embed(paths []string, rewrite bool) error {
+func embed(paths []string, rewrite, doDiff bool) error {
 	if len(paths) == 0 {
 		if rewrite {
 			return fmt.Errorf("error: cannot use -w with standard input")
 		}
-		return process(os.Stdout, os.Stdin)
+		if !doDiff {
+			return process(os.Stdout, stdin)
+		}
+
+		var out, in bytes.Buffer
+		if err := process(&out, io.TeeReader(stdin, &in)); err != nil {
+			return err
+		}
+		d, err := diff(in.Bytes(), out.Bytes())
+		if err != nil || len(d) == 0 {
+			return err
+		}
+		fmt.Fprintf(stdout, "%s", d)
+		return nil
 	}
 
 	for _, path := range paths {
-		if err := processFile(path, rewrite); err != nil {
+		if err := processFile(path, rewrite, doDiff); err != nil {
 			return fmt.Errorf("%s:%v", path, err)
 		}
 	}
@@ -119,7 +139,7 @@ var openFile = func(name string) (file, error) {
 	return os.OpenFile(name, os.O_RDWR, 0666)
 }
 
-func processFile(path string, rewrite bool) error {
+func processFile(path string, rewrite, doDiff bool) error {
 	if filepath.Ext(path) != ".md" {
 		return fmt.Errorf("not a markdown file")
 	}
@@ -135,6 +155,18 @@ func processFile(path string, rewrite bool) error {
 		return err
 	}
 
+	if doDiff {
+		f, err := readFile(path)
+		if err != nil {
+			return fmt.Errorf("could not read %s for diff: %v", path, err)
+		}
+		data, err := diff(f, buf.Bytes())
+		if err != nil || len(data) == 0 {
+			return err
+		}
+		fmt.Fprintf(stdout, "%s", data)
+	}
+
 	if rewrite {
 		n, err := f.WriteAt(buf.Bytes(), 0)
 		if err != nil {
@@ -143,7 +175,7 @@ func processFile(path string, rewrite bool) error {
 		return f.Truncate(int64(n))
 	}
 
-	io.Copy(os.Stdout, buf)
+	io.Copy(stdout, buf)
 	return nil
 }
 
@@ -391,4 +423,38 @@ func extract(b []byte, start, end *string) ([]byte, error) {
 	}
 
 	return b, nil
+}
+
+func diff(b1, b2 []byte) ([]byte, error) {
+	f1, err := ioutil.TempFile("", "embedmd")
+	if err != nil {
+		return nil, fmt.Errorf("could not create tmp file: %v", err)
+	}
+	defer os.Remove(f1.Name())
+	defer f1.Close()
+
+	f2, err := ioutil.TempFile("", "embedmd")
+	if err != nil {
+		return nil, fmt.Errorf("could not create tmp file: %v", err)
+	}
+	defer os.Remove(f2.Name())
+	defer f2.Close()
+
+	f1.Write(b1)
+	f2.Write(b2)
+
+	data, err := exec.Command("diff", "-u", f1.Name(), f2.Name()).CombinedOutput()
+	if len(data) == 0 && err == nil {
+		// diff exits with a non-zero status when the files don't match.
+		// Ignore that failure as long as we get output.
+		return nil, err
+	}
+
+	// drop the first two lines of the output, since the paths shown
+	// correspond to files that have been already removed.
+	lines := bytes.SplitN(data, []byte{'\n'}, 3)
+	if len(lines) != 3 {
+		return nil, fmt.Errorf("unexpected format for diff output: %s", data)
+	}
+	return lines[2], nil
 }
