@@ -148,11 +148,19 @@ func TestExtractFromFile(t *testing.T) {
 		files map[string][]byte
 		out   string
 		err   string
+		dir   string
 	}{
 		{
 			name:  "extract the whole file",
 			in:    "(code.go)",
 			files: map[string][]byte{"code.go": []byte(content)},
+			out:   "```go\n" + string(content) + "```\n",
+		},
+		{
+			name:  "extract the whole from a different directory",
+			in:    "(code.go)",
+			dir:   "sample",
+			files: map[string][]byte{"sample/code.go": []byte(content)},
 			out:   "```go\n" + string(content) + "```\n",
 		},
 		{
@@ -182,7 +190,7 @@ func TestExtractFromFile(t *testing.T) {
 	for _, tt := range tc {
 		readFile = fakeReadFile(tt.files)
 		w := new(bytes.Buffer)
-		err := extractFromFile(w, tt.in)
+		err := extractFromFile(w, tt.in, tt.dir)
 		if !eqErr(t, tt.name, err, tt.err) {
 			continue
 		}
