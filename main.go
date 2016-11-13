@@ -34,7 +34,7 @@
 // The embedded content starts at the first line that matches /start regexp/
 // and finishes at the first line matching /end regexp/.
 //
-// Ommiting the the second regular expression will embed only the piece of
+// Omitting the the second regular expression will embed only the piece of
 // text that matches /regexp/:
 //
 //     [embedmd]:# (pathOrURL language /regexp/)
