@@ -199,7 +199,7 @@ func TestEmbed(t *testing.T) {
 	defer func(f func(string) (*http.Response, error)) { httpGet = f }(httpGet)
 
 	openFile = func(string) (file, error) { return nil, os.ErrNotExist }
-	err := processFile("something.md", true)
+	err := processFile("something.md", true, false)
 	eqErr(t, "no files", err, "could not open: file does not exist")
 
 	tc := []struct {
@@ -209,6 +209,7 @@ func TestEmbed(t *testing.T) {
 		urls  map[string][]byte
 		out   string
 		err   string
+		diff  bool
 	}{
 		{
 			name: "missing file",
@@ -286,6 +287,28 @@ func TestEmbed(t *testing.T) {
 				"```\n" +
 				"Yay!\n",
 		},
+		{
+			name: "diff generating code for first time",
+			in: "# This is some markdown\n" +
+				"[embedmd]:# (code.go)\n" +
+				"Yay!\n",
+			files: map[string][]byte{"code.go": []byte(content)},
+			out: "@@ -1,3 +1,13 @@\n" +
+				" # This is some markdown\n" +
+				" [embedmd]:# (code.go)\n" +
+				"+```go\n" +
+				"+\n" +
+				"+package main\n" +
+				"+\n" +
+				"+import \"fmt\"\n" +
+				"+\n" +
+				"+func main() {\n" +
+				"+        fmt.Println(\"hello, test\")\n" +
+				"+}\n" +
+				"+```\n" +
+				" Yay!\n",
+			diff: true,
+		},
 	}
 
 	for _, tt := range tc {
@@ -293,11 +316,20 @@ func TestEmbed(t *testing.T) {
 		f := newFakeFile(tt.in)
 		openFile = func(name string) (file, error) { return f, nil }
 		httpGet = fakeHTTPGet(tt.urls)
-		err := embed([]string{"file.md"}, true)
+		if tt.diff {
+			tt.files["file.md"] = []byte(tt.in)
+			defer func(w io.Writer) { stdout = w }(stdout)
+			stdout = &bytes.Buffer{}
+		}
+		err := embed([]string{"file.md"}, true, tt.diff)
 		if !eqErr(t, tt.name, err, tt.err) {
 			continue
 		}
-		if out := f.buf.String(); tt.out != out {
+		out := f.buf.String()
+		if tt.diff {
+			out = stdout.(*bytes.Buffer).String()
+		}
+		if tt.out != out {
 			t.Errorf("case [%s]: expected output:\n###\n%s\n###; got###\n%s\n###", tt.name, tt.out, out)
 		}
 	}
