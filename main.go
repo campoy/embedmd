@@ -22,63 +22,27 @@
 // The command receives a list of markdown files, if none is given it
 // reads from the standard input.
 //
-// The format of an embedmd command is:
+// embedmd supports two flags:
+// -d: will print the difference of the input file with what the output
+//     would have been if executed.
+// -w: rewrites the given files rather than writing the output to the standard
+//     output.
 //
-//     [embedmd]:# (pathOrURL language /start regexp/ /end regexp/)
-//
-// The embedded code will be extracted from the file at pathOrURL,
-// which can either be a relative path to a file in the local file
-// system (using always forward slashes as directory separator) or
-// a url starting with http:// or https://.
-// If the pathOrURL is a url the tool will fetch the content in that url.
-// The embedded content starts at the first line that matches /start regexp/
-// and finishes at the first line matching /end regexp/.
-//
-// Omitting the the second regular expression will embed only the piece of
-// text that matches /regexp/:
-//
-//     [embedmd]:# (pathOrURL language /regexp/)
-//
-// To embed the whole line matching a regular expression you can use:
-//
-//     [embedmd]:# (pathOrURL language /.*regexp.*\n/)
-//
-// If you want to embed from a point to the end you should use:
-//
-//     [embedmd]:# (pathOrURL language /start regexp/ $)
-//
-// Finally you can embed a whole file by omitting both regular expressions:
-//
-//     [embedmd]:# (pathOrURL language)
-//
-// You can ommit the language in any of the previous commands, and the extension
-// of the file will be used for the snippet syntax highlighting. Note that while
-// this works Go files, since the file extension .go matches the name of the language
-// go, this will fail with other files like .md whose language name is markdown.
-//
-//     [embedmd]:# (file.ext)
-//
+// For more information on the format of the commands, read the documentation
+// of the github.com/campoy/embedmd/embedmd package.
 package main
 
 import (
-	"bufio"
 	"bytes"
-	"errors"
 	"flag"
 	"fmt"
 	"io"
 	"io/ioutil"
-	"net/http"
 	"os"
 	"os/exec"
 	"path/filepath"
-	"regexp"
-	"strings"
-)
 
-var (
-	stdout io.Writer = os.Stdout
-	stdin  io.Reader = os.Stdin
+	"github.com/campoy/embedmd/embedmd"
 )
 
 func usage() {
@@ -99,17 +63,26 @@ func main() {
 	}
 }
 
+var (
+	stdout io.Writer = os.Stdout
+	stdin  io.Reader = os.Stdin
+)
+
 func embed(paths []string, rewrite, doDiff bool) error {
+	if rewrite && doDiff {
+		return fmt.Errorf("error: cannot use -w and -d simulatenously")
+	}
+
 	if len(paths) == 0 {
 		if rewrite {
 			return fmt.Errorf("error: cannot use -w with standard input")
 		}
 		if !doDiff {
-			return process(os.Stdout, stdin, "")
+			return embedmd.Process(stdout, stdin)
 		}
 
 		var out, in bytes.Buffer
-		if err := process(&out, io.TeeReader(stdin, &in), ""); err != nil {
+		if err := embedmd.Process(&out, io.TeeReader(stdin, &in)); err != nil {
 			return err
 		}
 		d, err := diff(in.Bytes(), out.Bytes())
@@ -139,6 +112,15 @@ var openFile = func(name string) (file, error) {
 	return os.OpenFile(name, os.O_RDWR, 0666)
 }
 
+func readFile(path string) ([]byte, error) {
+	f, err := openFile(path)
+	if err != nil {
+		return nil, err
+	}
+	defer f.Close()
+	return ioutil.ReadAll(f)
+}
+
 func processFile(path string, rewrite, doDiff bool) error {
 	if filepath.Ext(path) != ".md" {
 		return fmt.Errorf("not a markdown file")
@@ -146,12 +128,12 @@ func processFile(path string, rewrite, doDiff bool) error {
 
 	f, err := openFile(path)
 	if err != nil {
-		return fmt.Errorf("could not open: %v", err)
+		return err
 	}
 	defer f.Close()
 
 	buf := new(bytes.Buffer)
-	if err := process(buf, f, filepath.Dir(path)); err != nil {
+	if err := embedmd.Process(buf, f, embedmd.WithBaseDir(path)); err != nil {
 		return err
 	}
 
@@ -165,6 +147,7 @@ func processFile(path string, rewrite, doDiff bool) error {
 			return err
 		}
 		fmt.Fprintf(stdout, "%s", data)
+		return nil
 	}
 
 	if rewrite {
@@ -177,252 +160,6 @@ func processFile(path string, rewrite, doDiff bool) error {
 
 	io.Copy(stdout, buf)
 	return nil
-}
-
-type textScanner interface {
-	Text() string
-	Scan() bool
-}
-
-type parsingState func(io.Writer, textScanner, string) (parsingState, error)
-
-func parsingText(out io.Writer, s textScanner, dir string) (parsingState, error) {
-	// print current line, then decide what to do based on the next one.
-	fmt.Fprintln(out, s.Text())
-	if !s.Scan() {
-		return nil, nil // end of file, which is fine.
-	}
-	switch line := s.Text(); {
-	case strings.HasPrefix(line, "[embedmd]:#"):
-		return parsingCmd, nil
-	case strings.HasPrefix(line, "```"):
-		return codeParser{print: true}.parse, nil
-	default:
-		return parsingText, nil
-	}
-}
-
-func parsingCmd(out io.Writer, s textScanner, dir string) (parsingState, error) {
-	line := s.Text()
-	fmt.Fprintln(out, line)
-	err := extractFromFile(out, strings.Split(line, "#")[1], dir)
-	if err != nil {
-		return nil, err
-	}
-	if !s.Scan() {
-		return nil, nil // end of file, which is fine.
-	}
-	if strings.HasPrefix(s.Text(), "```") {
-		return codeParser{print: false}.parse, nil
-	}
-	return parsingText, nil
-}
-
-type codeParser struct{ print bool }
-
-func (c codeParser) parse(out io.Writer, s textScanner, dir string) (parsingState, error) {
-	if c.print {
-		fmt.Fprintln(out, s.Text())
-	}
-	if !s.Scan() {
-		return nil, fmt.Errorf("unbalanced code section")
-	}
-	if !strings.HasPrefix(s.Text(), "```") {
-		return c.parse, nil
-	}
-
-	// print the end of the code section if needed and go back to parsing text.
-	if c.print {
-		fmt.Fprintln(out, s.Text())
-	}
-	if !s.Scan() {
-		return nil, nil // end of file
-	}
-	return parsingText, nil
-}
-
-type countingScanner struct {
-	*bufio.Scanner
-	line int
-}
-
-func (c *countingScanner) Scan() bool {
-	b := c.Scanner.Scan()
-	if b {
-		c.line++
-	}
-	return b
-}
-
-func process(out io.Writer, in io.Reader, dir string) error {
-	s := &countingScanner{bufio.NewScanner(in), 0}
-	if !s.Scan() {
-		return nil
-	}
-	state := parsingText
-	var err error
-	for state != nil {
-		state, err = state(out, s, dir)
-		if err != nil {
-			return fmt.Errorf("%d: %v", s.line, err)
-		}
-	}
-
-	if err := s.Err(); err != nil {
-		return fmt.Errorf("%d: %v", s.line, err)
-	}
-	return nil
-}
-
-func extractFromFile(w io.Writer, args, dir string) error {
-	file, lang, start, end, err := parseArgs(args)
-	if err != nil {
-		return err
-	}
-
-	b, err := readContents(dir, file)
-	if err != nil {
-		return fmt.Errorf("could not read %s: %v", file, err)
-	}
-
-	b, err = extract(b, start, end)
-	if err != nil {
-		return fmt.Errorf("could not extract content from %s: %v", file, err)
-	}
-
-	if len(b) > 0 && b[len(b)-1] != '\n' {
-		b = append(b, '\n')
-	}
-
-	fmt.Fprintln(w, "```"+lang)
-	w.Write(b)
-	fmt.Fprintln(w, "```")
-	return nil
-}
-
-// replaced by testing functions.
-var (
-	readFile = ioutil.ReadFile
-	httpGet  = http.Get
-)
-
-func readContents(dir, path string) ([]byte, error) {
-	if !strings.HasPrefix(path, "http://") && !strings.HasPrefix(path, "https://") {
-		return readFile(filepath.Join(dir, filepath.FromSlash(path)))
-	}
-
-	res, err := httpGet(path)
-	if err != nil {
-		return nil, err
-	}
-	defer res.Body.Close()
-	if res.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("status %s", res.Status)
-	}
-	return ioutil.ReadAll(res.Body)
-}
-
-// fields returns a list of the groups of text separated by blanks,
-// keeping all text surrounded by / as a group.
-func fields(s string) ([]string, error) {
-	var args []string
-
-	for s = strings.TrimSpace(s); len(s) > 0; s = strings.TrimSpace(s) {
-		if s[0] == '/' {
-			sep := strings.IndexByte(s[1:], '/')
-			if sep < 0 {
-				return nil, errors.New("unbalanced /")
-			}
-			args, s = append(args, s[:sep+2]), s[sep+2:]
-		} else {
-			sep := strings.IndexByte(s[1:], ' ')
-			if sep < 0 {
-				return append(args, s), nil
-			}
-			args, s = append(args, s[:sep+1]), s[sep+1:]
-		}
-	}
-
-	return args, nil
-}
-
-func parseArgs(s string) (file, lang string, start, end *string, err error) {
-	s = strings.TrimSpace(s)
-	if len(s) < 2 || s[0] != '(' || s[len(s)-1] != ')' {
-		return "", "", nil, nil, errors.New("argument list should be in parenthesis")
-	}
-
-	args, err := fields(s[1 : len(s)-1])
-	if err != nil {
-		return "", "", nil, nil, err
-	}
-	if len(args) == 0 {
-		return "", "", nil, nil, errors.New("missing file name")
-	}
-
-	file, args = args[0], args[1:]
-	if len(args) > 0 && args[0][0] != '/' {
-		lang, args = args[0], args[1:]
-	} else {
-		ext := filepath.Ext(file[1:])
-		if len(ext) == 0 {
-			return "", "", nil, nil, errors.New("language is required when file has no extension")
-		}
-		lang = ext[1:]
-	}
-
-	switch {
-	case len(args) == 1:
-		start = &args[0]
-	case len(args) == 2:
-		start, end = &args[0], &args[1]
-	case len(args) > 2:
-		return "", "", nil, nil, errors.New("too many arguments")
-	}
-
-	return file, lang, start, end, nil
-}
-
-func extract(b []byte, start, end *string) ([]byte, error) {
-	if start == nil && end == nil {
-		return b, nil
-	}
-
-	match := func(s string) ([]int, error) {
-		if len(s) <= 2 || s[0] != '/' || s[len(s)-1] != '/' {
-			return nil, fmt.Errorf("missing slashes (/) around %q", s)
-		}
-		re, err := regexp.Compile(s[1 : len(s)-1])
-		if err != nil {
-			return nil, err
-		}
-		loc := re.FindIndex(b)
-		if loc == nil {
-			return nil, fmt.Errorf("could not match %q", s)
-		}
-		return loc, nil
-	}
-
-	if *start != "" {
-		loc, err := match(*start)
-		if err != nil {
-			return nil, err
-		}
-		if end == nil {
-			return b[loc[0]:loc[1]], nil
-		}
-		b = b[loc[0]:]
-	}
-
-	if *end != "$" {
-		loc, err := match(*end)
-		if err != nil {
-			return nil, err
-		}
-		b = b[:loc[1]]
-	}
-
-	return b, nil
 }
 
 func diff(b1, b2 []byte) ([]byte, error) {
