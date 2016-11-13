@@ -1,4 +1,4 @@
-[![Build Status](https://travis-ci.org/campoy/embedmd.svg)](https://travis-ci.org/campoy/embedmd) [![Go Report Card](https://goreportcard.com/badge/github.com/campoy/embedmd)](https://goreportcard.com/report/github.com/campoy/embedmd)
+[![Build Status](https://travis-ci.org/campoy/embedmd.svg)](https://travis-ci.org/campoy/embedmd) [![Go Report Card](https://goreportcard.com/badge/github.com/campoy/embedmd)](https://goreportcard.com/report/github.com/campoy/embedmd) [![Coverage Status](https://coveralls.io/repos/github/campoy/embedmd/badge.svg?branch=master)](https://coveralls.io/github/campoy/embedmd?branch=master)
 
 # embedmd
 
