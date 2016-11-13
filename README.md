@@ -117,6 +117,10 @@ Go is very simple, here you can see a whole "hello, world" program.
 
 [embedmd]:# (hello.go)
 
+We can try to embed a file from a directory.
+
+[embedmd]:# (test/hello.go /func main/ $)
+
 You always start with a `package` statement like:
 
 [embedmd]:# (hello.go /package.*/)
