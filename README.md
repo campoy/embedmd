@@ -134,9 +134,15 @@ You can also see how to get the current time:
 [embedmd]:# (hello.go /time\.[^)]*\)/)
 ```
 
-Executing `embedmd -w docs.md` will modify `docs.md`
+# Flags
+
+* `-w`: Executing `embedmd -w docs.md` will modify `docs.md`
 and add the corresponding code snippets, as shown in
 [sample/result.md](sample/result.md).
+
+* `-d`: Executing `embedmd -d docs.md` will display the difference
+between the contents of `docs.md` and the output of
+`embedmd docs.md`.
 
 ### Disclaimer
 
