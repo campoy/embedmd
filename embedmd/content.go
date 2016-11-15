@@ -24,6 +24,9 @@ import (
 // Fetcher provides an abstraction on a file system.
 // The Fetch function is called anytime some content needs to be fetched.
 // For now this includes files and URLs.
+// The first parameter is the base directory that could be used to resolve
+// relative paths. This base directory will be ignored for absolute paths,
+// such as URLs.
 type Fetcher interface {
 	Fetch(dir, path string) ([]byte, error)
 }
@@ -32,7 +35,7 @@ type fetcher struct{}
 
 func (fetcher) Fetch(dir, path string) ([]byte, error) {
 	if !strings.HasPrefix(path, "http://") && !strings.HasPrefix(path, "https://") {
-		path = filepath.Join(filepath.FromSlash(path))
+		path = filepath.Join(dir, filepath.FromSlash(path))
 		return ioutil.ReadFile(path)
 	}
 

@@ -133,7 +133,7 @@ func processFile(path string, rewrite, doDiff bool) error {
 	defer f.Close()
 
 	buf := new(bytes.Buffer)
-	if err := embedmd.Process(buf, f, embedmd.WithBaseDir(path)); err != nil {
+	if err := embedmd.Process(buf, f, embedmd.WithBaseDir(filepath.Dir(path))); err != nil {
 		return err
 	}
 
