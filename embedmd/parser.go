@@ -24,9 +24,7 @@ type commandRunner func(io.Writer, *command) error
 
 func process(out io.Writer, in io.Reader, run commandRunner) error {
 	s := &countingScanner{bufio.NewScanner(in), 0}
-	if !s.Scan() {
-		return nil
-	}
+
 	state := parsingText
 	var err error
 	for state != nil {
@@ -63,8 +61,6 @@ type textScanner interface {
 type state func(io.Writer, textScanner, commandRunner) (state, error)
 
 func parsingText(out io.Writer, s textScanner, run commandRunner) (state, error) {
-	// print current line, then decide what to do based on the next one.
-	fmt.Fprintln(out, s.Text())
 	if !s.Scan() {
 		return nil, nil // end of file, which is fine.
 	}
@@ -74,6 +70,7 @@ func parsingText(out io.Writer, s textScanner, run commandRunner) (state, error)
 	case strings.HasPrefix(line, "```"):
 		return codeParser{print: true}.parse, nil
 	default:
+		fmt.Fprintln(out, s.Text())
 		return parsingText, nil
 	}
 }
@@ -95,6 +92,7 @@ func parsingCmd(out io.Writer, s textScanner, run commandRunner) (state, error) 
 	if strings.HasPrefix(s.Text(), "```") {
 		return codeParser{print: false}.parse, nil
 	}
+	fmt.Fprintln(out, s.Text())
 	return parsingText, nil
 }
 
@@ -114,9 +112,6 @@ func (c codeParser) parse(out io.Writer, s textScanner, run commandRunner) (stat
 	// print the end of the code section if needed and go back to parsing text.
 	if c.print {
 		fmt.Fprintln(out, s.Text())
-	}
-	if !s.Scan() {
-		return nil, nil // end of file
 	}
 	return parsingText, nil
 }
