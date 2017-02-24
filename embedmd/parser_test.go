@@ -91,13 +91,15 @@ func TestParser(t *testing.T) {
 	}
 
 	for _, tt := range tc {
-		var out bytes.Buffer
-		err := process(&out, strings.NewReader(tt.in), tt.run)
-		if !eqErr(t, tt.name, err, tt.err) {
-			continue
-		}
-		if got := out.String(); got != tt.out {
-			t.Errorf("case [%s] expected %q; got %q", tt.name, tt.out, got)
-		}
+		t.Run(tt.name, func(t *testing.T) {
+			var out bytes.Buffer
+			err := process(&out, strings.NewReader(tt.in), tt.run)
+			if !eqErr(t, tt.name, err, tt.err) {
+				return
+			}
+			if got := out.String(); got != tt.out {
+				t.Errorf("case [%s] expected %q; got %q", tt.name, tt.out, got)
+			}
+		})
 	}
 }

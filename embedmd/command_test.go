@@ -69,24 +69,26 @@ func TestParseCommand(t *testing.T) {
 	}
 
 	for _, tt := range tc {
-		cmd, err := parseCommand(tt.in)
-		if !eqErr(t, tt.name, err, tt.err) {
-			continue
-		}
+		t.Run(tt.name, func(t *testing.T) {
+			cmd, err := parseCommand(tt.in)
+			if !eqErr(t, tt.name, err, tt.err) {
+				return
+			}
 
-		want, got := tt.cmd, *cmd
-		if want.path != got.path {
-			t.Errorf("case [%s]: expected file %q; got %q", tt.name, want.path, got.path)
-		}
-		if want.lang != got.lang {
-			t.Errorf("case [%s]: expected language %q; got %q", tt.name, want.lang, got.lang)
-		}
-		if !eqPtr(want.start, got.start) {
-			t.Errorf("case [%s]: expected start %v; got %v", tt.name, str(want.start), str(got.start))
-		}
-		if !eqPtr(want.end, got.end) {
-			t.Errorf("case [%s]: expected end %v; got %v", tt.name, str(want.end), str(got.end))
-		}
+			want, got := tt.cmd, *cmd
+			if want.path != got.path {
+				t.Errorf("case [%s]: expected file %q; got %q", tt.name, want.path, got.path)
+			}
+			if want.lang != got.lang {
+				t.Errorf("case [%s]: expected language %q; got %q", tt.name, want.lang, got.lang)
+			}
+			if !eqPtr(want.start, got.start) {
+				t.Errorf("case [%s]: expected start %v; got %v", tt.name, str(want.start), str(got.start))
+			}
+			if !eqPtr(want.end, got.end) {
+				t.Errorf("case [%s]: expected end %v; got %v", tt.name, str(want.end), str(got.end))
+			}
+		})
 	}
 }
 

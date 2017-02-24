@@ -71,13 +71,15 @@ func TestExtract(t *testing.T) {
 	}
 
 	for _, tt := range tc {
-		b, err := extract([]byte(content), tt.start, tt.end)
-		if !eqErr(t, tt.name, err, tt.err) {
-			continue
-		}
-		if string(b) != tt.out {
-			t.Errorf("case [%s]: expected extracting %q; got %q", tt.name, tt.out, b)
-		}
+		t.Run(tt.name, func(t *testing.T) {
+			b, err := extract([]byte(content), tt.start, tt.end)
+			if !eqErr(t, tt.name, err, tt.err) {
+				return
+			}
+			if string(b) != tt.out {
+				t.Errorf("case [%s]: expected extracting %q; got %q", tt.name, tt.out, b)
+			}
+		})
 	}
 }
 
@@ -123,20 +125,21 @@ func TestExtractFromFile(t *testing.T) {
 	}
 
 	for _, tt := range tc {
-		e := embedder{
-			baseDir: tt.baseDir,
-			Fetcher: fakeFileProvider(tt.files),
-		}
+		t.Run(tt.name, func(t *testing.T) {
+			e := embedder{
+				baseDir: tt.baseDir,
+				Fetcher: fakeFileProvider(tt.files),
+			}
 
-		w := new(bytes.Buffer)
-		err := e.runCommand(w, &tt.cmd)
-		if !eqErr(t, tt.name, err, tt.err) {
-			continue
-		}
-		if w.String() != tt.out {
-			t.Errorf("case [%s]: expected output\n%q\n; got \n%q\n", tt.name, tt.out, w.String())
-		}
-
+			w := new(bytes.Buffer)
+			err := e.runCommand(w, &tt.cmd)
+			if !eqErr(t, tt.name, err, tt.err) {
+				return
+			}
+			if w.String() != tt.out {
+				t.Errorf("case [%s]: expected output\n%q\n; got \n%q\n", tt.name, tt.out, w.String())
+			}
+		})
 	}
 }
 
@@ -253,22 +256,24 @@ func TestProcess(t *testing.T) {
 	}
 
 	for _, tt := range tc {
-		var out bytes.Buffer
-		cp := mixedContentProvider{tt.files, tt.urls}
-		if tt.diff {
-			cp.files["file.md"] = []byte(tt.in)
-		}
-		opts := []Option{WithFetcher(cp)}
-		if tt.dir != "" {
-			opts = append(opts, WithBaseDir(tt.dir))
-		}
-		err := Process(&out, strings.NewReader(tt.in), opts...)
-		if !eqErr(t, tt.name, err, tt.err) {
-			continue
-		}
-		if tt.out != out.String() {
-			t.Errorf("case [%s]: expected output:\n###\n%s\n###; got###\n%s\n###", tt.name, tt.out, out.String())
-		}
+		t.Run(tt.name, func(t *testing.T) {
+			var out bytes.Buffer
+			cp := mixedContentProvider{tt.files, tt.urls}
+			if tt.diff {
+				cp.files["file.md"] = []byte(tt.in)
+			}
+			opts := []Option{WithFetcher(cp)}
+			if tt.dir != "" {
+				opts = append(opts, WithBaseDir(tt.dir))
+			}
+			err := Process(&out, strings.NewReader(tt.in), opts...)
+			if !eqErr(t, tt.name, err, tt.err) {
+				return
+			}
+			if tt.out != out.String() {
+				t.Errorf("case [%s]: expected output:\n###\n%s\n###; got###\n%s\n###", tt.name, tt.out, out.String())
+			}
+		})
 	}
 }
 
