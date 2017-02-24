@@ -65,6 +65,9 @@ func TestExtract(t *testing.T) {
 			start: ptr("something"), err: "missing slashes (/) around \"something\""},
 		{name: "bad end regexp",
 			start: ptr("/fmt.P/"), end: ptr("/)/"), err: "error parsing regexp: unexpected ): `)`"},
+
+		{name: "start and end of line ^$",
+			start: ptr("/^func main/"), end: ptr("/}$/"), out: "func main() {\n        fmt.Println(\"hello, test\")\n}"},
 	}
 
 	for _, tt := range tc {
