@@ -101,9 +101,9 @@ func embed(paths []string, rewrite, doDiff bool) (foundDiff bool, err error) {
 		if err != nil {
 			return false, fmt.Errorf("%s:%v", path, err)
 		}
-		doDiff = doDiff || d
+		foundDiff = foundDiff || d
 	}
-	return doDiff, nil
+	return foundDiff, nil
 }
 
 type file interface {
