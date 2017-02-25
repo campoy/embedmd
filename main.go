@@ -56,9 +56,12 @@ func main() {
 	flag.Usage = usage
 	flag.Parse()
 
-	err := embed(flag.Args(), *rewrite, *doDiff)
+	diff, err := embed(flag.Args(), *rewrite, *doDiff)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
+		os.Exit(2)
+	}
+	if diff && *doDiff {
 		os.Exit(2)
 	}
 }
@@ -68,37 +71,39 @@ var (
 	stdin  io.Reader = os.Stdin
 )
 
-func embed(paths []string, rewrite, doDiff bool) error {
+func embed(paths []string, rewrite, doDiff bool) (foundDiff bool, err error) {
 	if rewrite && doDiff {
-		return fmt.Errorf("error: cannot use -w and -d simulatenously")
+		return false, fmt.Errorf("error: cannot use -w and -d simulatenously")
 	}
 
 	if len(paths) == 0 {
 		if rewrite {
-			return fmt.Errorf("error: cannot use -w with standard input")
+			return false, fmt.Errorf("error: cannot use -w with standard input")
 		}
 		if !doDiff {
-			return embedmd.Process(stdout, stdin)
+			return false, embedmd.Process(stdout, stdin)
 		}
 
 		var out, in bytes.Buffer
 		if err := embedmd.Process(&out, io.TeeReader(stdin, &in)); err != nil {
-			return err
+			return false, err
 		}
 		d, err := diff(in.Bytes(), out.Bytes())
 		if err != nil || len(d) == 0 {
-			return err
+			return false, err
 		}
 		fmt.Fprintf(stdout, "%s", d)
-		return nil
+		return true, nil
 	}
 
 	for _, path := range paths {
-		if err := processFile(path, rewrite, doDiff); err != nil {
-			return fmt.Errorf("%s:%v", path, err)
+		d, err := processFile(path, rewrite, doDiff)
+		if err != nil {
+			return false, fmt.Errorf("%s:%v", path, err)
 		}
+		doDiff = doDiff || d
 	}
-	return nil
+	return doDiff, nil
 }
 
 type file interface {
@@ -121,45 +126,45 @@ func readFile(path string) ([]byte, error) {
 	return ioutil.ReadAll(f)
 }
 
-func processFile(path string, rewrite, doDiff bool) error {
+func processFile(path string, rewrite, doDiff bool) (foundDiff bool, err error) {
 	if filepath.Ext(path) != ".md" {
-		return fmt.Errorf("not a markdown file")
+		return false, fmt.Errorf("not a markdown file")
 	}
 
 	f, err := openFile(path)
 	if err != nil {
-		return err
+		return false, err
 	}
 	defer f.Close()
 
 	buf := new(bytes.Buffer)
 	if err := embedmd.Process(buf, f, embedmd.WithBaseDir(filepath.Dir(path))); err != nil {
-		return err
+		return false, err
 	}
 
 	if doDiff {
 		f, err := readFile(path)
 		if err != nil {
-			return fmt.Errorf("could not read %s for diff: %v", path, err)
+			return false, fmt.Errorf("could not read %s for diff: %v", path, err)
 		}
 		data, err := diff(f, buf.Bytes())
 		if err != nil || len(data) == 0 {
-			return err
+			return false, err
 		}
 		fmt.Fprintf(stdout, "%s", data)
-		return nil
+		return true, nil
 	}
 
 	if rewrite {
 		n, err := f.WriteAt(buf.Bytes(), 0)
 		if err != nil {
-			return fmt.Errorf("could not write: %v", err)
+			return false, fmt.Errorf("could not write: %v", err)
 		}
-		return f.Truncate(int64(n))
+		return false, f.Truncate(int64(n))
 	}
 
 	io.Copy(stdout, buf)
-	return nil
+	return false, nil
 }
 
 func diff(b1, b2 []byte) ([]byte, error) {

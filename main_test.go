@@ -24,10 +24,11 @@ import (
 
 func TestEmbedStreams(t *testing.T) {
 	tc := []struct {
-		name    string
-		in, out string
-		err     string
-		d, w    bool
+		name      string
+		in, out   string
+		err       string
+		d, w      bool
+		foundDiff bool
 	}{
 		{name: "just some text",
 			in:  "# hello\ntest\n",
@@ -42,8 +43,9 @@ func TestEmbedStreams(t *testing.T) {
 			err: "error: cannot use -w and -d simulatenously",
 		},
 		{name: "empty diff",
-			d:  true,
-			in: "# hello\ntest\n",
+			d:         true,
+			in:        "# hello\ntest\n",
+			foundDiff: false,
 		},
 		{name: "non empty diff",
 			d:  true,
@@ -53,6 +55,7 @@ func TestEmbedStreams(t *testing.T) {
 				"-test\n" +
 				"\\ No newline at end of file\n" +
 				"+test\n",
+			foundDiff: true,
 		},
 	}
 
@@ -62,12 +65,19 @@ func TestEmbedStreams(t *testing.T) {
 		stdin = strings.NewReader(tt.in)
 		buf := &bytes.Buffer{}
 		stdout = buf
-		err := embed(nil, tt.w, tt.d)
+		foundDiff, err := embed(nil, tt.w, tt.d)
 		if !eqErr(t, tt.name, err, tt.err) {
 			continue
 		}
 		if got := buf.String(); tt.out != got {
 			t.Errorf("case [%s] expected output\n%q\n; got\n%q", tt.name, tt.out, got)
+		}
+		if tt.d && foundDiff != tt.foundDiff {
+			if foundDiff {
+				t.Errorf("case [%s] expected to find a diff, but didn't", tt.name)
+			} else {
+				t.Errorf("case [%s] didn't expect to find a diff, but did", tt.name)
+			}
 		}
 	}
 }
@@ -102,7 +112,7 @@ func TestEmbedFiles(t *testing.T) {
 			stdout = &f.buf
 		}
 
-		err := embed([]string{"docs.md"}, tt.w, tt.d)
+		_, err := embed([]string{"docs.md"}, tt.w, tt.d)
 		if !eqErr(t, tt.name, err, tt.err) {
 			continue
 		}
