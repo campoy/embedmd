@@ -42,12 +42,24 @@ func TestParser(t *testing.T) {
 		{
 			name: "a command",
 			in:   "one\n[embedmd]:# (code.go)",
-			out:  "one\n[embedmd]:# (code.go)\nOK",
+			out:  "one\n[embedmd]:# (code.go)\nOK\n",
 			run: func(w io.Writer, cmd *command) error {
 				if cmd.path != "code.go" {
 					return fmt.Errorf("bad command")
 				}
-				fmt.Fprint(w, "OK")
+				fmt.Fprint(w, "OK\n")
+				return nil
+			},
+		},
+		{
+			name: "a command then some text",
+			in:   "one\n[embedmd]:# (code.go)\nYay\n",
+			out:  "one\n[embedmd]:# (code.go)\nOK\nYay\n",
+			run: func(w io.Writer, cmd *command) error {
+				if cmd.path != "code.go" {
+					return fmt.Errorf("bad command")
+				}
+				fmt.Fprint(w, "OK\n")
 				return nil
 			},
 		},
@@ -66,16 +78,28 @@ func TestParser(t *testing.T) {
 			in:   "one\n```\nsome code\n",
 			err:  "3: unbalanced code section",
 		},
+		{
+			name: "two contiguous code sections",
+			in:   "\n```go\nhello\n```\n```go\nbye\n```\n",
+			out:  "\n```go\nhello\n```\n```go\nbye\n```\n",
+		},
+		{
+			name: "two non contiguous code sections",
+			in:   "```go\nhello\n```\n\n```go\nbye\n```\n",
+			out:  "```go\nhello\n```\n\n```go\nbye\n```\n",
+		},
 	}
 
 	for _, tt := range tc {
-		var out bytes.Buffer
-		err := process(&out, strings.NewReader(tt.in), tt.run)
-		if !eqErr(t, tt.name, err, tt.err) {
-			continue
-		}
-		if got := out.String(); got != tt.out {
-			t.Errorf("case [%s] expected %q; got %q", tt.name, tt.out, got)
-		}
+		t.Run(tt.name, func(t *testing.T) {
+			var out bytes.Buffer
+			err := process(&out, strings.NewReader(tt.in), tt.run)
+			if !eqErr(t, tt.name, err, tt.err) {
+				return
+			}
+			if got := out.String(); got != tt.out {
+				t.Errorf("case [%s] expected %q; got %q", tt.name, tt.out, got)
+			}
+		})
 	}
 }
