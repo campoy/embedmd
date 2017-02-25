@@ -90,7 +90,7 @@ func embed(paths []string, rewrite, doDiff bool) error {
 			return err
 		}
 		fmt.Fprintf(stdout, "%s", d)
-		return nil
+		os.Exit(2) // if there was a difference we want the return code to be not zero
 	}
 
 	for _, path := range paths {
