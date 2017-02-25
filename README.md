@@ -70,7 +70,7 @@ language name is `markdown`.
 ## Installation
 
 `embedmd` is written in Go, so if you have Go installed (you can do so
-by following [these instructions](golang.org/doc/install.html)) you can
+by following [these instructions](https://golang.org/doc/install)) you can
 install it with go get:
 
 ```
