@@ -40,7 +40,7 @@ func TestEmbedStreams(t *testing.T) {
 		},
 		{name: "can't diff and rewrite",
 			w: true, d: true,
-			err: "error: cannot use -w and -d simulatenously",
+			err: "error: cannot use -w and -d simultaneously",
 		},
 		{name: "empty diff",
 			d:         true,

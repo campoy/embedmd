@@ -73,7 +73,7 @@ var (
 
 func embed(paths []string, rewrite, doDiff bool) (foundDiff bool, err error) {
 	if rewrite && doDiff {
-		return false, fmt.Errorf("error: cannot use -w and -d simulatenously")
+		return false, fmt.Errorf("error: cannot use -w and -d simultaneously")
 	}
 
 	if len(paths) == 0 {
