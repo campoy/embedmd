@@ -68,19 +68,19 @@ func fields(s string) ([]string, error) {
 	var args []string
 
 	for s = strings.TrimSpace(s); len(s) > 0; s = strings.TrimSpace(s) {
+		var sep int
 		if s[0] == '/' {
-			sep := nextSlash(s[1:], 0)
+			sep = nextSlash(s, 1)
 			if sep < 0 {
 				return nil, errors.New("unbalanced /")
 			}
-			args, s = append(args, s[:sep+2]), s[sep+2:]
 		} else {
-			sep := strings.IndexByte(s[1:], ' ')
+			sep = strings.IndexByte(s[1:], ' ')
 			if sep < 0 {
 				return append(args, s), nil
 			}
-			args, s = append(args, s[:sep+1]), s[sep+1:]
 		}
+		args, s = append(args, s[:sep+1]), s[sep+1:]
 	}
 
 	return args, nil
