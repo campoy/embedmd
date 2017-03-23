@@ -40,7 +40,7 @@ func TestEmbedStreams(t *testing.T) {
 		},
 		{name: "can't diff and rewrite",
 			w: true, d: true,
-			err: "error: cannot use -w and -d simulatenously",
+			err: "error: cannot use -w and -d simultaneously",
 		},
 		{name: "empty diff",
 			d:         true,
@@ -50,11 +50,11 @@ func TestEmbedStreams(t *testing.T) {
 		{name: "non empty diff",
 			d:  true,
 			in: "# hello\ntest",
-			out: "@@ -1,2 +1,2 @@\n" +
-				" # hello\n" +
-				"-test\n" +
-				"\\ No newline at end of file\n" +
-				"+test\n",
+			out: `@@ -1,2 +1,3 @@
+ # hello
+ test
++
+`,
 			foundDiff: true,
 		},
 	}
@@ -98,7 +98,7 @@ func TestEmbedFiles(t *testing.T) {
 		{name: "diffing a single file",
 			in:  "one\ntwo\nthree",
 			d:   true,
-			out: "@@ -0,0 +1,3 @@\n+one\n+two\n+three\n",
+			out: "@@ -1 +1,4 @@\n+one\n+two\n+three\n \n",
 		},
 	}
 

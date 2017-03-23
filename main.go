@@ -39,10 +39,10 @@ import (
 	"io"
 	"io/ioutil"
 	"os"
-	"os/exec"
 	"path/filepath"
 
 	"github.com/campoy/embedmd/embedmd"
+	"github.com/pmezard/go-difflib/difflib"
 )
 
 // modified while building by -ldflags.
@@ -82,7 +82,7 @@ var (
 
 func embed(paths []string, rewrite, doDiff bool) (foundDiff bool, err error) {
 	if rewrite && doDiff {
-		return false, fmt.Errorf("error: cannot use -w and -d simulatenously")
+		return false, fmt.Errorf("error: cannot use -w and -d simultaneously")
 	}
 
 	if len(paths) == 0 {
@@ -97,7 +97,7 @@ func embed(paths []string, rewrite, doDiff bool) (foundDiff bool, err error) {
 		if err := embedmd.Process(&out, io.TeeReader(stdin, &in)); err != nil {
 			return false, err
 		}
-		d, err := diff(in.Bytes(), out.Bytes())
+		d, err := diff(in.String(), out.String())
 		if err != nil || len(d) == 0 {
 			return false, err
 		}
@@ -156,7 +156,7 @@ func processFile(path string, rewrite, doDiff bool) (foundDiff bool, err error) 
 		if err != nil {
 			return false, fmt.Errorf("could not read %s for diff: %v", path, err)
 		}
-		data, err := diff(f, buf.Bytes())
+		data, err := diff(string(f), buf.String())
 		if err != nil || len(data) == 0 {
 			return false, err
 		}
@@ -176,36 +176,10 @@ func processFile(path string, rewrite, doDiff bool) (foundDiff bool, err error) 
 	return false, nil
 }
 
-func diff(b1, b2 []byte) ([]byte, error) {
-	f1, err := ioutil.TempFile("", "embedmd")
-	if err != nil {
-		return nil, fmt.Errorf("could not create tmp file: %v", err)
-	}
-	defer os.Remove(f1.Name())
-	defer f1.Close()
-
-	f2, err := ioutil.TempFile("", "embedmd")
-	if err != nil {
-		return nil, fmt.Errorf("could not create tmp file: %v", err)
-	}
-	defer os.Remove(f2.Name())
-	defer f2.Close()
-
-	f1.Write(b1)
-	f2.Write(b2)
-
-	data, err := exec.Command("diff", "-u", f1.Name(), f2.Name()).CombinedOutput()
-	if len(data) == 0 && err == nil {
-		// diff exits with a non-zero status when the files don't match.
-		// Ignore that failure as long as we get output.
-		return nil, err
-	}
-
-	// drop the first two lines of the output, since the paths shown
-	// correspond to files that have been already removed.
-	lines := bytes.SplitN(data, []byte{'\n'}, 3)
-	if len(lines) != 3 {
-		return nil, fmt.Errorf("unexpected format for diff output: %s", data)
-	}
-	return lines[2], nil
+func diff(a, b string) (string, error) {
+	return difflib.GetUnifiedDiffString(difflib.UnifiedDiff{
+		A:       difflib.SplitLines(a),
+		B:       difflib.SplitLines(b),
+		Context: 3,
+	})
 }
