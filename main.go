@@ -45,6 +45,9 @@ import (
 	"github.com/campoy/embedmd/embedmd"
 )
 
+// modified while building by -ldflags.
+var version = "unkown"
+
 func usage() {
 	fmt.Fprintf(os.Stderr, "usage: embedmd [flags] [path ...]\n")
 	flag.PrintDefaults()
@@ -53,8 +56,14 @@ func usage() {
 func main() {
 	rewrite := flag.Bool("w", false, "write result to (markdown) file instead of stdout")
 	doDiff := flag.Bool("d", false, "display diffs instead of rewriting files")
+	printVersion := flag.Bool("v", false, "display embedmd version")
 	flag.Usage = usage
 	flag.Parse()
+
+	if *printVersion {
+		fmt.Println("embedmd version: " + version)
+		return
+	}
 
 	diff, err := embed(flag.Args(), *rewrite, *doDiff)
 	if err != nil {
