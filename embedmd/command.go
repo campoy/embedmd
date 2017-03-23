@@ -68,38 +68,34 @@ func fields(s string) ([]string, error) {
 	var args []string
 
 	for s = strings.TrimSpace(s); len(s) > 0; s = strings.TrimSpace(s) {
-		var sep int
 		if s[0] == '/' {
-			sep = nextSlash(s, 1)
+			sep := nextSlash(s[1:])
 			if sep < 0 {
 				return nil, errors.New("unbalanced /")
 			}
+			args, s = append(args, s[:sep+2]), s[sep+2:]
 		} else {
-			sep = strings.IndexByte(s[1:], ' ')
+			sep := strings.IndexByte(s[1:], ' ')
 			if sep < 0 {
 				return append(args, s), nil
 			}
+			args, s = append(args, s[:sep+1]), s[sep+1:]
 		}
-		args, s = append(args, s[:sep+1]), s[sep+1:]
 	}
 
 	return args, nil
 }
 
 // nextSlash will find the index of the next unescaped slash in a string.
-func nextSlash(s string, offset int) int {
-	sep := strings.IndexByte(s[offset:], '/')
-	if sep < 0 {
-		return sep
+func nextSlash(s string) int {
+	for sep := 0; ; sep++ {
+		i := strings.IndexByte(s[sep:], '/')
+		if i < 0 {
+			return -1
+		}
+		sep += i
+		if sep == 0 || s[sep-1] != '\\' {
+			return sep
+		}
 	}
-
-	// build up an offset for the original string.
-	sep += offset
-
-	// recurse if the slash we found is escaped.
-	if s[sep-1] == '\\' {
-		return nextSlash(s, sep+1)
-	}
-
-	return sep
 }
