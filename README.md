@@ -8,70 +8,71 @@ that does not even compile?
 
 Then `embedmd` is for you!
 
-`embedmd` embeds files or fractions of files into markdown files. It does
-so by searching `embedmd` commands, which are a subset of the markdown
-syntax for comments. This means they are invisible when markdown is
+`embedmd` embeds files or fractions of files into Markdown files. It does
+so by searching `embedmd` commands, which are a subset of the Markdown
+syntax for comments. This means they are invisible when Markdown is
 rendered, so they can be kept in the file as pointers to the origin of
 the embedded text.
 
-The command receives a list of markdown files, if none is given it reads
-from the standard input.
+The command receives a list of Markdown files. If no list is given, the command
+reads from the standard input.
 
 The format of an `embedmd` command is:
 
-```markdown
+```Markdown
 [embedmd]:# (pathOrURL language /start regexp/ /end regexp/)
 ```
 
 The embedded code will be extracted from the file at `pathOrURL`,
 which can either be a relative path to a file in the local file
 system (using always forward slashes as directory separator) or
-a url starting with `http://` or `https://`.
-If the `pathOrURL` is a url the tool will fetch the content in that url.
+a URL starting with `http://` or `https://`.
+If the `pathOrURL` is a URL the tool will fetch the content in that URL.
 The embedded content starts at the first line that matches `/start regexp/`
 and finishes at the first line matching `/end regexp/`.
 
-Ommiting the the second regular expression will embed only the piece of text
+Omitting the the second regular expression will embed only the piece of text
 that matches `/regexp/`:
 
-```markdown
+```Markdown
 [embedmd]:# (pathOrURL language /regexp/)
 ```
 
 To embed the whole line matching a regular expression you can use:
 
-```markdown
+```Markdown
 [embedmd]:# (pathOrURL language /.*regexp.*/)
 ```
 
-If you want to embed from a point to the end you should use:
+To embed from a point to the end you should use:
 
-```markdown
+```Markdown
 [embedmd]:# (pathOrURL language /start regexp/ $)
 ```
 
-Finally you can embed a whole file by omitting both regular expressions:
+To embed a whole file, omit both regular expressions:
 
-```markdown
+```Markdown
 [embedmd]:# (pathOrURL language)
 ```
 
-You can ommit the language in any of the previous commands, and the extension
+You can omit the language in any of the previous commands, and the extension
 of the file will be used for the snippet syntax highlighting.
 
-Note that while this works Go files, since the file extension `.go` matches the
-name of the language `go`, this will fail with other files like `.md` whose
-language name is `markdown`.
+This works when the file extensions matches the name of the language (like Go
+files, since `.go` matches `go`). However, this will fail with other files like
+`.md` whose language name is `markdown`.
 
-```markdown
+```Markdown
 [embedmd]:# (file.ext)
 ```
 
 ## Installation
 
-`embedmd` is written in Go, so if you have Go installed (you can do so
-by following [these instructions](https://golang.org/doc/install)) you can
-install it with go get:
+> You can install Go by following [these instructions](https://golang.org/doc/install).
+
+`embedmd` is written in Go, so if you have Go installed you can install it with
+`go get`:
 
 ```
 go get github.com/campoy/embedmd
@@ -109,8 +110,8 @@ func main() {
 
 *docs.md:*
 
-[embedmd]:# (sample/docs.md markdown /./ /embedmd.*time.*/)
-```markdown
+[embedmd]:# (sample/docs.md Markdown /./ /embedmd.*time.*/)
+```Markdown
 # A hello world in Go
 
 Go is very simple, here you can see a whole "hello, world" program.
