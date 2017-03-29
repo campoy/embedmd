@@ -60,7 +60,7 @@ You can ommit the language in any of the previous commands, and the extension
 of the file will be used for the snippet syntax highlighting.
 
 Note that while this works Go files, since the file extension `.go` matches the
-name of the language `go`, this will fail with other fileslike `.md` whose
+name of the language `go`, this will fail with other files like `.md` whose
 language name is `markdown`.
 
 ```markdown
