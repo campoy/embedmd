@@ -53,7 +53,7 @@ func usage() {
 	flag.PrintDefaults()
 }
 
-func main() {
+func main()
 	rewrite := flag.Bool("w", false, "write result to (markdown) file instead of stdout")
 	doDiff := flag.Bool("d", false, "display diffs instead of rewriting files")
 	printVersion := flag.Bool("v", false, "display embedmd version")
