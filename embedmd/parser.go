@@ -29,12 +29,12 @@ func process(out io.Writer, in io.Reader, run commandRunner) error {
 	var err error
 	for state != nil {
 		state, err = state(out, s, run)
-		if err != nil {
+		if nil != err {
 			return fmt.Errorf("%d: %v", s.line, err)
 		}
 	}
 
-	if err := s.Err(); err != nil {
+	if err := s.Err(); nil != err {
 		return fmt.Errorf("%d: %v", s.line, err)
 	}
 	return nil
@@ -80,10 +80,10 @@ func parsingCmd(out io.Writer, s textScanner, run commandRunner) (state, error) 
 	fmt.Fprintln(out, line)
 	args := line[strings.Index(line, "#")+1:]
 	cmd, err := parseCommand(args)
-	if err != nil {
+	if nil != err {
 		return nil, err
 	}
-	if err := run(out, cmd); err != nil {
+	if err := run(out, cmd); nil != err {
 		return nil, err
 	}
 	if !s.Scan() {
