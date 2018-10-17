@@ -29,7 +29,7 @@ func process(out io.Writer, in io.Reader, run commandRunner) error {
 	var err error
 	for state != nil {
 		state, err = state(out, s, run)
-		if nil != err {
+if err != nil
 			return fmt.Errorf("%d: %v", s.line, err)
 		}
 	}
