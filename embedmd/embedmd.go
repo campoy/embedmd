@@ -56,6 +56,7 @@ import (
 	"fmt"
 	"io"
 	"regexp"
+	"strings"
 )
 
 // Process reads markdown from the given io.Reader searching for an embedmd
@@ -104,9 +105,15 @@ func (e *embedder) runCommand(w io.Writer, cmd *command) error {
 		b = append(b, '\n')
 	}
 
-	fmt.Fprintln(w, "```"+cmd.lang)
-	w.Write(b)
-	fmt.Fprintln(w, "```")
+	fmt.Fprintln(w, cmd.leftPad+"```"+cmd.lang)
+	lines := strings.Split(string(b), "\n")
+	if len(lines) > 0 {
+		lines = lines[:len(lines)-1]
+	}
+	for _, line := range lines {
+		fmt.Fprintln(w, cmd.leftPad+line)
+	}
+	fmt.Fprintln(w, cmd.leftPad+"```")
 	return nil
 }
 
