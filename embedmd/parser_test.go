@@ -52,6 +52,18 @@ func TestParser(t *testing.T) {
 			},
 		},
 		{
+			name: "an indented command",
+			in:   "one\n    [embedmd]:# (code.go)",
+			out:  "one\n    [embedmd]:# (code.go)\nOK\n",
+			run: func(w io.Writer, cmd *command) error {
+				if cmd.path != "code.go" {
+					return fmt.Errorf("bad command")
+				}
+				fmt.Fprint(w, "OK\n")
+				return nil
+			},
+		},
+		{
 			name: "a command then some text",
 			in:   "one\n[embedmd]:# (code.go)\nYay\n",
 			out:  "one\n[embedmd]:# (code.go)\nOK\nYay\n",
@@ -77,6 +89,11 @@ func TestParser(t *testing.T) {
 			name: "unbalanced code section",
 			in:   "one\n```\nsome code\n",
 			err:  "3: unbalanced code section",
+		},
+		{
+			name: "an indented code section",
+			in:   "\n    ```go\n    hello\n    ```\n",
+			out:  "\n    ```go\n    hello\n    ```\n",
 		},
 		{
 			name: "two contiguous code sections",

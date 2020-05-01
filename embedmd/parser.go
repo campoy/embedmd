@@ -65,9 +65,9 @@ func parsingText(out io.Writer, s textScanner, run commandRunner) (state, error)
 		return nil, nil // end of file, which is fine.
 	}
 	switch line := s.Text(); {
-	case strings.HasPrefix(line, "[embedmd]:#"):
+	case strings.HasPrefix(strings.TrimSpace(line), "[embedmd]:#"):
 		return parsingCmd, nil
-	case strings.HasPrefix(line, "```"):
+	case strings.HasPrefix(strings.TrimSpace(line), "```"):
 		return codeParser{print: true}.parse, nil
 	default:
 		fmt.Fprintln(out, s.Text())
@@ -83,13 +83,14 @@ func parsingCmd(out io.Writer, s textScanner, run commandRunner) (state, error) 
 	if err != nil {
 		return nil, err
 	}
+	cmd.leftPad = strings.Split(line, strings.TrimSpace(line))[0]
 	if err := run(out, cmd); err != nil {
 		return nil, err
 	}
 	if !s.Scan() {
 		return nil, nil // end of file, which is fine.
 	}
-	if strings.HasPrefix(s.Text(), "```") {
+	if strings.HasPrefix(strings.TrimSpace(s.Text()), "```") {
 		return codeParser{print: false}.parse, nil
 	}
 	fmt.Fprintln(out, s.Text())
@@ -105,7 +106,7 @@ func (c codeParser) parse(out io.Writer, s textScanner, run commandRunner) (stat
 	if !s.Scan() {
 		return nil, fmt.Errorf("unbalanced code section")
 	}
-	if !strings.HasPrefix(s.Text(), "```") {
+	if !strings.HasPrefix(strings.TrimSpace(s.Text()), "```") {
 		return c.parse, nil
 	}
 

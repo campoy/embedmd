@@ -234,13 +234,6 @@ func TestProcess(t *testing.T) {
 			err: "2: could not read https://fakeurl.com/main.go: status Not Found",
 		},
 		{
-			name: "embedding code from a bad URL",
-			in: "# This is some markdown\n" +
-				"[embedmd]:# (https://fakeurl.com\\main.go)\n" +
-				"Yay!\n",
-			err: "2: could not read https://fakeurl.com\\main.go: parse https://fakeurl.com\\main.go: invalid character \"\\\\\" in host name",
-		},
-		{
 			name: "ignore commands in code blocks",
 			in: "# This is some markdown\n" +
 				"```markdown\n" +

@@ -16,6 +16,10 @@ Followed by an `import` statement:
 
 [embedmd]:# (hello.go /import/ /\)/)
 
+And an indented `import` statement:
+
+    [embedmd]:# (hello.go /import/ /\)/)
+
 You can also see how to get the current time:
 
 [embedmd]:# (hello.go /time\.[^)]*\)/)

@@ -22,6 +22,7 @@ import (
 type command struct {
 	path, lang string
 	start, end *string
+	leftPad    string
 }
 
 func parseCommand(s string) (*command, error) {
