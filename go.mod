@@ -1,3 +1,8 @@
 module github.com/campoy/embedmd/v2
 
-require github.com/pmezard/go-difflib v1.0.0
+go 1.14
+
+require (
+	github.com/campoy/embedmd v1.0.0
+	github.com/pmezard/go-difflib v1.0.0
+)
