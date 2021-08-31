@@ -32,4 +32,4 @@ print 'hello'
 
 And why not include some file directly from GitHub?
 
-[embedmd]:# (https://raw.githubusercontent.com/campoy/embedmd/master/sample/hello.go /func main/ $)
+[embedmd]:# (https://raw.githubusercontent.com/halvards/embedmd/main/sample/hello.go /func main/ $)

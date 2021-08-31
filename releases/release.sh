@@ -19,7 +19,7 @@ for goos in "${GOOSS[@]}"; do
         echo "\n\nbuilding $goos $goarch"
         mkdir embedmd
         pushd embedmd
-        GOOS=$goos GOARCH=$goarch go build -ldflags "-X main.version=$TAG" github.com/campoy/embedmd
+        GOOS=$goos GOARCH=$goarch go build -ldflags "-X main.version=$TAG" github.com/halvards/embedmd
         popd
         tar -cvzf "downloads/$TAG/embedmd.$TAG.$goos.$goarch.tar.gz" embedmd
         rm -rf embedmd

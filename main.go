@@ -29,7 +29,7 @@
 //     output.
 //
 // For more information on the format of the commands, read the documentation
-// of the github.com/campoy/embedmd/embedmd package.
+// of the ./embedmd package.
 package main
 
 import (
@@ -41,7 +41,7 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/campoy/embedmd/embedmd"
+	"github.com/halvards/embedmd/embedmd"
 	"github.com/pmezard/go-difflib/difflib"
 )
 

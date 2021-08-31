@@ -1,5 +1,13 @@
-[![Build Status](https://travis-ci.org/campoy/embedmd.svg)](https://travis-ci.org/campoy/embedmd) [![Go Report Card](https://goreportcard.com/badge/github.com/campoy/embedmd)](https://goreportcard.com/report/github.com/campoy/embedmd)
+# Fork of embedmd
 
+This fork supports `embedmd` commands that are indented in the Markdown file,
+e.g. as part of a numbered list of steps:
+
+```
+1.   A command:
+
+     [embedmd]:# (test/hello.go /func main/ $)
+```
 
 # embedmd
 
@@ -72,18 +80,15 @@ files, since `.go` matches `go`). However, this will fail with other files like
 
 > You can install Go by following [these instructions](https://golang.org/doc/install).
 
-`embedmd` is written in Go, so if you have Go installed you can install it with
-`go get`:
+`embedmd` is written in Go, so if you have Go 1.16 or later installed,
+you can install it with `go install`:
 
 ```
-go get github.com/campoy/embedmd
+go get github.com/halvards/embedmd@latest
 ```
 
 This will download the code, compile it, and leave an `embedmd` binary
 in `$GOPATH/bin`.
-
-Eventually, and if there's enough interest, I will provide binaries for
-every OS and architecture out there ... _eventually_.
 
 ## Usage:
 
