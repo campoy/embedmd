@@ -112,6 +112,7 @@ func eqPtr(a, b *string) bool {
 }
 
 func eqErr(t *testing.T, id string, err error, msg string) bool {
+	t.Helper()
 	if err == nil && msg == "" {
 		return true
 	}
