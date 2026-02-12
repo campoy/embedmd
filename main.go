@@ -37,7 +37,6 @@ import (
 	"flag"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 
@@ -126,15 +125,6 @@ var openFile = func(name string) (file, error) {
 	return os.OpenFile(name, os.O_RDWR, 0666)
 }
 
-func readFile(path string) ([]byte, error) {
-	f, err := openFile(path)
-	if err != nil {
-		return nil, err
-	}
-	defer f.Close()
-	return ioutil.ReadAll(f)
-}
-
 func processFile(path string, rewrite, doDiff bool) (foundDiff bool, err error) {
 	if filepath.Ext(path) != ".md" {
 		return false, fmt.Errorf("not a markdown file")
@@ -146,17 +136,19 @@ func processFile(path string, rewrite, doDiff bool) (foundDiff bool, err error) 
 	}
 	defer f.Close()
 
+	var original bytes.Buffer
+	var r io.Reader = f
+	if doDiff {
+		r = io.TeeReader(f, &original)
+	}
+
 	buf := new(bytes.Buffer)
-	if err := embedmd.Process(buf, f, embedmd.WithBaseDir(filepath.Dir(path))); err != nil {
+	if err := embedmd.Process(buf, r, embedmd.WithBaseDir(filepath.Dir(path))); err != nil {
 		return false, err
 	}
 
 	if doDiff {
-		f, err := readFile(path)
-		if err != nil {
-			return false, fmt.Errorf("could not read %s for diff: %v", path, err)
-		}
-		data, err := diff(string(f), buf.String())
+		data, err := diff(original.String(), buf.String())
 		if err != nil || len(data) == 0 {
 			return false, err
 		}
