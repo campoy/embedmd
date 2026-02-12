@@ -172,8 +172,8 @@ func processFile(path string, rewrite, doDiff bool) (foundDiff bool, err error) 
 		return false, f.Truncate(int64(n))
 	}
 
-	io.Copy(stdout, buf)
-	return false, nil
+	_, err = io.Copy(stdout, buf)
+	return false, err
 }
 
 func diff(a, b string) (string, error) {
