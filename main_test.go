@@ -58,13 +58,13 @@ func TestEmbedStreams(t *testing.T) {
 		},
 	}
 
-	defer func(r io.Reader, w io.Writer) { stdin, stdout = r, w }(stdin, stdout)
-
 	for _, tt := range tc {
-		stdin = strings.NewReader(tt.in)
 		buf := &bytes.Buffer{}
-		stdout = buf
-		foundDiff, err := embed(nil, tt.w, tt.d)
+		a := &app{
+			stdout: buf,
+			stdin:  strings.NewReader(tt.in),
+		}
+		foundDiff, err := a.embed(nil, tt.w, tt.d)
 		if !eqErr(t, tt.name, err, tt.err) {
 			continue
 		}
@@ -101,17 +101,17 @@ func TestEmbedFiles(t *testing.T) {
 		},
 	}
 
-	defer func(f func(string) (file, error)) { openFile = f }(openFile)
-
 	for _, tt := range tc {
 		f := newFakeFile(tt.in)
-		openFile = func(path string) (file, error) { return f, nil }
-		stdout = os.Stdout
+		a := &app{
+			stdout:   os.Stdout,
+			openFile: func(path string) (file, error) { return f, nil },
+		}
 		if tt.d {
-			stdout = &f.buf
+			a.stdout = &f.buf
 		}
 
-		_, err := embed([]string{"docs.md"}, tt.w, tt.d)
+		_, err := a.embed([]string{"docs.md"}, tt.w, tt.d)
 		if !eqErr(t, tt.name, err, tt.err) {
 			continue
 		}

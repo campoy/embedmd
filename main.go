@@ -52,6 +52,16 @@ func usage() {
 	flag.PrintDefaults()
 }
 
+type app struct {
+	stdout   io.Writer
+	stdin    io.Reader
+	openFile func(string) (file, error)
+}
+
+func defaultOpenFile(name string) (file, error) {
+	return os.OpenFile(name, os.O_RDWR, 0666)
+}
+
 func main() {
 	rewrite := flag.Bool("w", false, "write result to (markdown) file instead of stdout")
 	doDiff := flag.Bool("d", false, "display diffs instead of rewriting files")
@@ -64,7 +74,13 @@ func main() {
 		return
 	}
 
-	diff, err := embed(flag.Args(), *rewrite, *doDiff)
+	a := &app{
+		stdout:   os.Stdout,
+		stdin:    os.Stdin,
+		openFile: defaultOpenFile,
+	}
+
+	diff, err := a.embed(flag.Args(), *rewrite, *doDiff)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		os.Exit(2)
@@ -74,12 +90,7 @@ func main() {
 	}
 }
 
-var (
-	stdout io.Writer = os.Stdout
-	stdin  io.Reader = os.Stdin
-)
-
-func embed(paths []string, rewrite, doDiff bool) (foundDiff bool, err error) {
+func (a *app) embed(paths []string, rewrite, doDiff bool) (foundDiff bool, err error) {
 	if rewrite && doDiff {
 		return false, fmt.Errorf("error: cannot use -w and -d simultaneously")
 	}
@@ -89,23 +100,23 @@ func embed(paths []string, rewrite, doDiff bool) (foundDiff bool, err error) {
 			return false, fmt.Errorf("error: cannot use -w with standard input")
 		}
 		if !doDiff {
-			return false, embedmd.Process(stdout, stdin)
+			return false, embedmd.Process(a.stdout, a.stdin)
 		}
 
 		var out, in bytes.Buffer
-		if err := embedmd.Process(&out, io.TeeReader(stdin, &in)); err != nil {
+		if err := embedmd.Process(&out, io.TeeReader(a.stdin, &in)); err != nil {
 			return false, err
 		}
 		d, err := diff(in.String(), out.String())
 		if err != nil || len(d) == 0 {
 			return false, err
 		}
-		fmt.Fprintf(stdout, "%s", d)
+		fmt.Fprintf(a.stdout, "%s", d)
 		return true, nil
 	}
 
 	for _, path := range paths {
-		d, err := processFile(path, rewrite, doDiff)
+		d, err := a.processFile(path, rewrite, doDiff)
 		if err != nil {
 			return false, fmt.Errorf("%s:%v", path, err)
 		}
@@ -120,13 +131,8 @@ type file interface {
 	Truncate(int64) error
 }
 
-// replaced by testing functions.
-var openFile = func(name string) (file, error) {
-	return os.OpenFile(name, os.O_RDWR, 0666)
-}
-
-func readFile(path string) ([]byte, error) {
-	f, err := openFile(path)
+func (a *app) readFile(path string) ([]byte, error) {
+	f, err := a.openFile(path)
 	if err != nil {
 		return nil, err
 	}
@@ -134,12 +140,12 @@ func readFile(path string) ([]byte, error) {
 	return io.ReadAll(f)
 }
 
-func processFile(path string, rewrite, doDiff bool) (foundDiff bool, err error) {
+func (a *app) processFile(path string, rewrite, doDiff bool) (foundDiff bool, err error) {
 	if filepath.Ext(path) != ".md" {
 		return false, fmt.Errorf("not a markdown file")
 	}
 
-	f, err := openFile(path)
+	f, err := a.openFile(path)
 	if err != nil {
 		return false, err
 	}
@@ -151,7 +157,7 @@ func processFile(path string, rewrite, doDiff bool) (foundDiff bool, err error) 
 	}
 
 	if doDiff {
-		f, err := readFile(path)
+		f, err := a.readFile(path)
 		if err != nil {
 			return false, fmt.Errorf("could not read %s for diff: %v", path, err)
 		}
@@ -159,7 +165,7 @@ func processFile(path string, rewrite, doDiff bool) (foundDiff bool, err error) 
 		if err != nil || len(data) == 0 {
 			return false, err
 		}
-		fmt.Fprintf(stdout, "%s", data)
+		fmt.Fprintf(a.stdout, "%s", data)
 		return true, nil
 	}
 
@@ -171,7 +177,7 @@ func processFile(path string, rewrite, doDiff bool) (foundDiff bool, err error) 
 		return false, f.Truncate(int64(n))
 	}
 
-	_, err = io.Copy(stdout, buf)
+	_, err = io.Copy(a.stdout, buf)
 	return false, err
 }
 
