@@ -148,12 +148,3 @@ func (f *fakeFile) Truncate(int64) error                        { return nil }
 func newFakeFile(s string) *fakeFile {
 	return &fakeFile{ReadCloser: ioutil.NopCloser(strings.NewReader(s))}
 }
-
-func newOpenFunc(files map[string]string) func(string) (file, error) {
-	return func(path string) (file, error) {
-		if s, ok := files[path]; ok {
-			return newFakeFile(s), nil
-		}
-		return nil, os.ErrNotExist
-	}
-}
