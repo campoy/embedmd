@@ -8,7 +8,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        go: [ '1.11', '1.12', '1.13' ]
+        go: [ '1.24', '1.25', '1.26' ]
     name: Go Version ${{ matrix.go }}
     steps:
       - uses: actions/checkout@v4
