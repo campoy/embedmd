@@ -13,7 +13,11 @@
 
 package embedmd
 
-import "testing"
+import (
+	"testing"
+
+	"github.com/campoy/embedmd/internal/testutil"
+)
 
 func TestParseCommand(t *testing.T) {
 	tc := []struct {
@@ -24,10 +28,10 @@ func TestParseCommand(t *testing.T) {
 	}{
 		{name: "start to end",
 			in:  "(code.go /start/ /end/)",
-			cmd: command{path: "code.go", lang: "go", start: ptr("/start/"), end: ptr("/end/")}},
+			cmd: command{path: "code.go", lang: "go", start: testutil.Ptr("/start/"), end: testutil.Ptr("/end/")}},
 		{name: "only start",
 			in:  "(code.go     /start/)",
-			cmd: command{path: "code.go", lang: "go", start: ptr("/start/")}},
+			cmd: command{path: "code.go", lang: "go", start: testutil.Ptr("/start/")}},
 		{name: "empty list",
 			in:  "()",
 			err: "missing file name"},
@@ -54,10 +58,10 @@ func TestParseCommand(t *testing.T) {
 			cmd: command{path: "test.md", lang: "markdown"}},
 		{name: "multi-line comments",
 			in:  `(doc.go /\/\*/ /\*\//)`,
-			cmd: command{path: "doc.go", lang: "go", start: ptr(`/\/\*/`), end: ptr(`/\*\//`)}},
+			cmd: command{path: "doc.go", lang: "go", start: testutil.Ptr(`/\/\*/`), end: testutil.Ptr(`/\*\//`)}},
 		{name: "using $ as end",
 			in:  "(foo.go /start/ $)",
-			cmd: command{path: "foo.go", lang: "go", start: ptr("/start/"), end: ptr("$")}},
+			cmd: command{path: "foo.go", lang: "go", start: testutil.Ptr("/start/"), end: testutil.Ptr("$")}},
 		{name: "extra arguments",
 			in: "(foo.go /start/ $ extra)", err: "too many arguments"},
 		{name: "file name with directories",
@@ -74,7 +78,7 @@ func TestParseCommand(t *testing.T) {
 	for _, tt := range tc {
 		t.Run(tt.name, func(t *testing.T) {
 			cmd, err := parseCommand(tt.in)
-			if !eqErr(t, tt.name, err, tt.err) {
+			if !testutil.EqErr(t, tt.name, err, tt.err) {
 				return
 			}
 
@@ -85,43 +89,12 @@ func TestParseCommand(t *testing.T) {
 			if want.lang != got.lang {
 				t.Errorf("case [%s]: expected language %q; got %q", tt.name, want.lang, got.lang)
 			}
-			if !eqPtr(want.start, got.start) {
-				t.Errorf("case [%s]: expected start %v; got %v", tt.name, str(want.start), str(got.start))
+			if !testutil.EqPtr(want.start, got.start) {
+				t.Errorf("case [%s]: expected start %v; got %v", tt.name, testutil.Str(want.start), testutil.Str(got.start))
 			}
-			if !eqPtr(want.end, got.end) {
-				t.Errorf("case [%s]: expected end %v; got %v", tt.name, str(want.end), str(got.end))
+			if !testutil.EqPtr(want.end, got.end) {
+				t.Errorf("case [%s]: expected end %v; got %v", tt.name, testutil.Str(want.end), testutil.Str(got.end))
 			}
 		})
 	}
-}
-
-func ptr(s string) *string { return &s }
-
-func str(s *string) string {
-	if s == nil {
-		return "<nil>"
-	}
-	return *s
-}
-
-func eqPtr(a, b *string) bool {
-	if a == nil || b == nil {
-		return a == b
-	}
-	return *a == *b
-}
-
-func eqErr(t *testing.T, id string, err error, msg string) bool {
-	t.Helper()
-	if err == nil && msg == "" {
-		return true
-	}
-	if err == nil && msg != "" {
-		t.Errorf("case [%s]: expected error message %q; but got nothing", id, msg)
-		return false
-	}
-	if err != nil && msg != err.Error() {
-		t.Errorf("case [%s]: expected error message %q; but got %q", id, msg, err)
-	}
-	return false
 }

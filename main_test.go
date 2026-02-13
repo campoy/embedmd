@@ -19,6 +19,8 @@ import (
 	"os"
 	"strings"
 	"testing"
+
+	"github.com/campoy/embedmd/internal/testutil"
 )
 
 func TestEmbedStreams(t *testing.T) {
@@ -65,7 +67,7 @@ func TestEmbedStreams(t *testing.T) {
 		buf := &bytes.Buffer{}
 		stdout = buf
 		foundDiff, err := embed(nil, tt.w, tt.d)
-		if !eqErr(t, tt.name, err, tt.err) {
+		if !testutil.EqErr(t, tt.name, err, tt.err) {
 			continue
 		}
 		if got := buf.String(); tt.out != got {
@@ -112,7 +114,7 @@ func TestEmbedFiles(t *testing.T) {
 		}
 
 		_, err := embed([]string{"docs.md"}, tt.w, tt.d)
-		if !eqErr(t, tt.name, err, tt.err) {
+		if !testutil.EqErr(t, tt.name, err, tt.err) {
 			continue
 		}
 		if got := f.buf.String(); tt.out != got {
@@ -120,20 +122,6 @@ func TestEmbedFiles(t *testing.T) {
 		}
 
 	}
-}
-
-func eqErr(t *testing.T, id string, err error, msg string) bool {
-	if err == nil && msg == "" {
-		return true
-	}
-	if err == nil && msg != "" {
-		t.Errorf("case [%s]: expected error message %q; but got nothing", id, msg)
-		return false
-	}
-	if err != nil && msg != err.Error() {
-		t.Errorf("case [%s]: expected error message %q; but got %q", id, msg, err)
-	}
-	return false
 }
 
 type fakeFile struct {

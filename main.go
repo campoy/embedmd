@@ -24,9 +24,12 @@
 //
 // embedmd supports two flags:
 // -d: will print the difference of the input file with what the output
-//     would have been if executed.
+//
+//	would have been if executed.
+//
 // -w: rewrites the given files rather than writing the output to the standard
-//     output.
+//
+//	output.
 //
 // For more information on the format of the commands, read the documentation
 // of the github.com/campoy/embedmd/embedmd package.

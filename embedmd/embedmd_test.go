@@ -21,6 +21,8 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+
+	"github.com/campoy/embedmd/internal/testutil"
 )
 
 const content = `
@@ -43,37 +45,37 @@ func TestExtract(t *testing.T) {
 		{name: "no limits",
 			out: string(content)},
 		{name: "only one line",
-			start: ptr("/func main.*\n/"), out: "func main() {\n"},
+			start: testutil.Ptr("/func main.*\n/"), out: "func main() {\n"},
 		{name: "from package to end",
-			start: ptr("/package main/"), end: ptr("$"), out: string(content[1:])},
+			start: testutil.Ptr("/package main/"), end: testutil.Ptr("$"), out: string(content[1:])},
 		{name: "not matching",
-			start: ptr("/gopher/"), err: "could not match \"/gopher/\""},
+			start: testutil.Ptr("/gopher/"), err: "could not match \"/gopher/\""},
 		{name: "part of a line",
-			start: ptr("/fmt.P/"), end: ptr("/hello/"), out: "fmt.Println(\"hello"},
+			start: testutil.Ptr("/fmt.P/"), end: testutil.Ptr("/hello/"), out: "fmt.Println(\"hello"},
 		{name: "function call",
-			start: ptr("/fmt\\.[^()]*/"), out: "fmt.Println"},
+			start: testutil.Ptr("/fmt\\.[^()]*/"), out: "fmt.Println"},
 		{name: "from fmt to end of line",
-			start: ptr("/fmt.P.*\n/"), out: "fmt.Println(\"hello, test\")\n"},
+			start: testutil.Ptr("/fmt.P.*\n/"), out: "fmt.Println(\"hello, test\")\n"},
 		{name: "from func to end of next line",
-			start: ptr("/func/"), end: ptr("/Println.*\n/"), out: "func main() {\n        fmt.Println(\"hello, test\")\n"},
+			start: testutil.Ptr("/func/"), end: testutil.Ptr("/Println.*\n/"), out: "func main() {\n        fmt.Println(\"hello, test\")\n"},
 		{name: "from func to }",
-			start: ptr("/func main/"), end: ptr("/}/"), out: "func main() {\n        fmt.Println(\"hello, test\")\n}"},
+			start: testutil.Ptr("/func main/"), end: testutil.Ptr("/}/"), out: "func main() {\n        fmt.Println(\"hello, test\")\n}"},
 
 		{name: "bad start regexp",
-			start: ptr("/(/"), err: "error parsing regexp: missing closing ): `(`"},
+			start: testutil.Ptr("/(/"), err: "error parsing regexp: missing closing ): `(`"},
 		{name: "bad regexp",
-			start: ptr("something"), err: "missing slashes (/) around \"something\""},
+			start: testutil.Ptr("something"), err: "missing slashes (/) around \"something\""},
 		{name: "bad end regexp",
-			start: ptr("/fmt.P/"), end: ptr("/)/"), err: "error parsing regexp: unexpected ): `)`"},
+			start: testutil.Ptr("/fmt.P/"), end: testutil.Ptr("/)/"), err: "error parsing regexp: unexpected ): `)`"},
 
 		{name: "start and end of line ^$",
-			start: ptr("/^func main/"), end: ptr("/}$/"), out: "func main() {\n        fmt.Println(\"hello, test\")\n}"},
+			start: testutil.Ptr("/^func main/"), end: testutil.Ptr("/}$/"), out: "func main() {\n        fmt.Println(\"hello, test\")\n}"},
 	}
 
 	for _, tt := range tc {
 		t.Run(tt.name, func(t *testing.T) {
 			b, err := extract([]byte(content), tt.start, tt.end)
-			if !eqErr(t, tt.name, err, tt.err) {
+			if !testutil.EqErr(t, tt.name, err, tt.err) {
 				return
 			}
 			if string(b) != tt.out {
@@ -107,7 +109,7 @@ func TestExtractFromFile(t *testing.T) {
 		},
 		{
 			name:  "added line break",
-			cmd:   command{path: "code.go", lang: "go", start: ptr("/fmt\\.Println/")},
+			cmd:   command{path: "code.go", lang: "go", start: testutil.Ptr("/fmt\\.Println/")},
 			files: map[string][]byte{"code.go": []byte(content)},
 			out:   "```go\nfmt.Println\n```\n",
 		},
@@ -118,7 +120,7 @@ func TestExtractFromFile(t *testing.T) {
 		},
 		{
 			name:  "unmatched regexp",
-			cmd:   command{path: "code.go", lang: "go", start: ptr("/potato/")},
+			cmd:   command{path: "code.go", lang: "go", start: testutil.Ptr("/potato/")},
 			files: map[string][]byte{"code.go": []byte(content)},
 			err:   "could not extract content from code.go: could not match \"/potato/\"",
 		},
@@ -133,7 +135,7 @@ func TestExtractFromFile(t *testing.T) {
 
 			w := new(bytes.Buffer)
 			err := e.runCommand(w, &tt.cmd)
-			if !eqErr(t, tt.name, err, tt.err) {
+			if !testutil.EqErr(t, tt.name, err, tt.err) {
 				return
 			}
 			if w.String() != tt.out {
@@ -267,7 +269,7 @@ func TestProcess(t *testing.T) {
 				opts = append(opts, WithBaseDir(tt.dir))
 			}
 			err := Process(&out, strings.NewReader(tt.in), opts...)
-			if !eqErr(t, tt.name, err, tt.err) {
+			if !testutil.EqErr(t, tt.name, err, tt.err) {
 				return
 			}
 			if tt.out != out.String() {
