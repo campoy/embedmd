@@ -99,7 +99,7 @@ func TestEmbedFiles(t *testing.T) {
 		{name: "diffing a single file",
 			in:  "one\ntwo\nthree",
 			d:   true,
-			out: "@@ -1 +1,4 @@\n+one\n+two\n+three\n \n",
+			out: "@@ -1,3 +1,4 @@\n one\n two\n three\n+\n",
 		},
 	}
 
