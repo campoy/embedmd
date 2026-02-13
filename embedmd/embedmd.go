@@ -105,7 +105,9 @@ func (e *embedder) runCommand(w io.Writer, cmd *command) error {
 	}
 
 	fmt.Fprintln(w, "```"+cmd.lang)
-	w.Write(b)
+	if _, err := w.Write(b); err != nil {
+		return err
+	}
 	fmt.Fprintln(w, "```")
 	return nil
 }
