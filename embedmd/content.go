@@ -15,8 +15,9 @@ package embedmd
 
 import (
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/http"
+	"os"
 	"path/filepath"
 	"strings"
 )
@@ -36,7 +37,7 @@ type fetcher struct{}
 func (fetcher) Fetch(dir, path string) ([]byte, error) {
 	if !strings.HasPrefix(path, "http://") && !strings.HasPrefix(path, "https://") {
 		path = filepath.Join(dir, filepath.FromSlash(path))
-		return ioutil.ReadFile(path)
+		return os.ReadFile(path)
 	}
 
 	res, err := http.Get(path)
@@ -47,5 +48,5 @@ func (fetcher) Fetch(dir, path string) ([]byte, error) {
 	if res.StatusCode != http.StatusOK {
 		return nil, fmt.Errorf("status %s", res.Status)
 	}
-	return ioutil.ReadAll(res.Body)
+	return io.ReadAll(res.Body)
 }
