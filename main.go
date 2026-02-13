@@ -24,9 +24,12 @@
 //
 // embedmd supports two flags:
 // -d: will print the difference of the input file with what the output
-//     would have been if executed.
+//
+//	would have been if executed.
+//
 // -w: rewrites the given files rather than writing the output to the standard
-//     output.
+//
+//	output.
 //
 // For more information on the format of the commands, read the documentation
 // of the github.com/campoy/embedmd/embedmd package.
@@ -45,7 +48,7 @@ import (
 )
 
 // modified while building by -ldflags.
-var version = "unkown"
+var version = "unknown"
 
 func usage() {
 	fmt.Fprintf(os.Stderr, "usage: embedmd [flags] [path ...]\n")
@@ -164,8 +167,8 @@ func processFile(path string, rewrite, doDiff bool) (foundDiff bool, err error) 
 		return false, f.Truncate(int64(n))
 	}
 
-	io.Copy(stdout, buf)
-	return false, nil
+	_, err = io.Copy(stdout, buf)
+	return false, err
 }
 
 func diff(a, b string) (string, error) {

@@ -19,6 +19,8 @@ import (
 	"io"
 	"strings"
 	"testing"
+
+	"github.com/campoy/embedmd/internal/testutil"
 )
 
 func TestParser(t *testing.T) {
@@ -94,7 +96,7 @@ func TestParser(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			var out bytes.Buffer
 			err := process(&out, strings.NewReader(tt.in), tt.run)
-			if !eqErr(t, tt.name, err, tt.err) {
+			if !testutil.EqErr(t, tt.name, err, tt.err) {
 				return
 			}
 			if got := out.String(); got != tt.out {
