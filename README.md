@@ -73,10 +73,10 @@ files, since `.go` matches `go`). However, this will fail with other files like
 > You can install Go by following [these instructions](https://golang.org/doc/install).
 
 `embedmd` is written in Go, so if you have Go installed you can install it with
-`go get`:
+`go install`:
 
 ```
-go get github.com/campoy/embedmd
+go install github.com/campoy/embedmd@latest
 ```
 
 This will download the code, compile it, and leave an `embedmd` binary
