@@ -16,7 +16,6 @@ package main
 import (
 	"bytes"
 	"io"
-	"io/ioutil"
 	"os"
 	"strings"
 	"testing"
@@ -146,7 +145,7 @@ func (f *fakeFile) WriteAt(b []byte, offset int64) (int, error) { return f.buf.W
 func (f *fakeFile) Truncate(int64) error                        { return nil }
 
 func newFakeFile(s string) *fakeFile {
-	return &fakeFile{ReadCloser: ioutil.NopCloser(strings.NewReader(s))}
+	return &fakeFile{ReadCloser: io.NopCloser(strings.NewReader(s))}
 }
 
 func newOpenFunc(files map[string]string) func(string) (file, error) {
