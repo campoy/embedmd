@@ -36,8 +36,14 @@ type fetcher struct{}
 
 func (fetcher) Fetch(dir, path string) ([]byte, error) {
 	if !strings.HasPrefix(path, "http://") && !strings.HasPrefix(path, "https://") {
-		path = filepath.Join(dir, filepath.FromSlash(path))
-		return os.ReadFile(path)
+		resolved := filepath.Join(dir, filepath.FromSlash(path))
+		if dir != "" {
+			base := filepath.Clean(dir) + string(os.PathSeparator)
+			if !strings.HasPrefix(filepath.Clean(resolved)+string(os.PathSeparator), base) {
+				return nil, fmt.Errorf("path %q escapes base directory", path)
+			}
+		}
+		return os.ReadFile(resolved)
 	}
 
 	res, err := http.Get(path)
