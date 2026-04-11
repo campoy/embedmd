@@ -49,6 +49,12 @@
 // go, this will fail with other files like .md whose language name is markdown.
 //
 //	[embedmd]:# (file.ext)
+//
+// Security note: embed directives, including their regular expression patterns,
+// are treated as trusted input. Markdown files containing embedmd directives
+// should not be sourced from untrusted contributors without careful review, as
+// a crafted regular expression could match unintended content from the embedded
+// file.
 package embedmd
 
 import (
@@ -122,7 +128,7 @@ func extract(b []byte, start, end *string) ([]byte, error) {
 		}
 		re, err := regexp.CompilePOSIX(s[1 : len(s)-1])
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("invalid regexp %s: %v", s, err)
 		}
 		loc := re.FindIndex(b)
 		if loc == nil {

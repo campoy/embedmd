@@ -62,14 +62,24 @@ func TestExtract(t *testing.T) {
 			start: testutil.Ptr("/func main/"), end: testutil.Ptr("/}/"), out: "func main() {\n        fmt.Println(\"hello, test\")\n}"},
 
 		{name: "bad start regexp",
-			start: testutil.Ptr("/(/"), err: "error parsing regexp: missing closing ): `(`"},
+			start: testutil.Ptr("/(/"), err: "invalid regexp /(/: error parsing regexp: missing closing ): `(`"},
 		{name: "bad regexp",
 			start: testutil.Ptr("something"), err: "missing slashes (/) around \"something\""},
 		{name: "bad end regexp",
-			start: testutil.Ptr("/fmt.P/"), end: testutil.Ptr("/)/"), err: "error parsing regexp: unexpected ): `)`"},
+			start: testutil.Ptr("/fmt.P/"), end: testutil.Ptr("/)/"), err: "invalid regexp /)/: error parsing regexp: unexpected ): `)`"},
 
 		{name: "start and end of line ^$",
 			start: testutil.Ptr("/^func main/"), end: testutil.Ptr("/}$/"), out: "func main() {\n        fmt.Println(\"hello, test\")\n}"},
+
+		// Error message quality: invalid patterns should include the pattern string.
+		{name: "invalid regexp shows pattern in error",
+			start: testutil.Ptr("/[invalid/"), err: "invalid regexp /[invalid/: error parsing regexp: missing closing ]: `[invalid`"},
+		// Missing slashes should report the raw value.
+		{name: "missing slashes reports value",
+			start: testutil.Ptr("noSlashes"), err: "missing slashes (/) around \"noSlashes\""},
+		// Valid pattern regression: correctly matches a simple pattern.
+		{name: "valid pattern still works",
+			start: testutil.Ptr("/fmt\\.Println/"), out: "fmt.Println"},
 	}
 
 	for _, tt := range tc {
