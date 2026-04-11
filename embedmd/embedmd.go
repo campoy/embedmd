@@ -102,11 +102,11 @@ func checkPath(dir, path string) error {
 	}
 	absResolved, err := filepath.Abs(filepath.Join(dir, filepath.FromSlash(path)))
 	if err != nil {
-		return err
+		return fmt.Errorf("could not resolve path %q: %v", path, err)
 	}
 	absBase, err := filepath.Abs(dir)
 	if err != nil {
-		return err
+		return fmt.Errorf("could not resolve base directory %q: %v", dir, err)
 	}
 	if !strings.HasPrefix(absResolved+string(os.PathSeparator), absBase+string(os.PathSeparator)) {
 		return fmt.Errorf("path %q escapes base directory", path)
