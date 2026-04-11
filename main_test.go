@@ -23,63 +23,24 @@ import (
 	"github.com/campoy/embedmd/internal/testutil"
 )
 
-func TestEmbedStreams(t *testing.T) {
+func TestEmbedNoPaths(t *testing.T) {
 	tc := []struct {
-		name      string
-		in, out   string
-		err       string
-		d, w      bool
-		foundDiff bool
+		name string
+		err  string
+		d, w bool
 	}{
-		{name: "just some text",
-			in:  "# hello\ntest\n",
-			out: "# hello\ntest\n",
-		},
-		{name: "can't rewrite stdin",
-			w:   true,
-			err: "error: cannot use -w with standard input",
+		{name: "no files provided",
+			err: "error: no markdown files provided",
 		},
 		{name: "can't diff and rewrite",
 			w: true, d: true,
 			err: "error: cannot use -w and -d simultaneously",
 		},
-		{name: "empty diff",
-			d:         true,
-			in:        "# hello\ntest\n",
-			foundDiff: false,
-		},
-		{name: "non empty diff",
-			d:  true,
-			in: "# hello\ntest",
-			out: `@@ -1,2 +1,3 @@
- # hello
- test
-+
-`,
-			foundDiff: true,
-		},
 	}
 
-	defer func(r io.Reader, w io.Writer) { stdin, stdout = r, w }(stdin, stdout)
-
 	for _, tt := range tc {
-		stdin = strings.NewReader(tt.in)
-		buf := &bytes.Buffer{}
-		stdout = buf
-		foundDiff, err := embed(nil, tt.w, tt.d)
-		if !testutil.EqErr(t, tt.name, err, tt.err) {
-			continue
-		}
-		if got := buf.String(); tt.out != got {
-			t.Errorf("case [%s] expected output\n%q\n; got\n%q", tt.name, tt.out, got)
-		}
-		if tt.d && foundDiff != tt.foundDiff {
-			if foundDiff {
-				t.Errorf("case [%s] expected to find a diff, but didn't", tt.name)
-			} else {
-				t.Errorf("case [%s] didn't expect to find a diff, but did", tt.name)
-			}
-		}
+		_, err := embed(nil, tt.w, tt.d)
+		testutil.EqErr(t, tt.name, err, tt.err)
 	}
 }
 
