@@ -318,8 +318,15 @@ func (c mixedContentProvider) Fetch(dir, path string) ([]byte, error) {
 	if !strings.HasPrefix(path, "http://") && !strings.HasPrefix(path, "https://") {
 		resolved := filepath.Join(dir, filepath.FromSlash(path))
 		if dir != "" {
-			base := filepath.Clean(dir) + string(os.PathSeparator)
-			if !strings.HasPrefix(filepath.Clean(resolved)+string(os.PathSeparator), base) {
+			absResolved, err := filepath.Abs(resolved)
+			if err != nil {
+				return nil, err
+			}
+			absBase, err := filepath.Abs(dir)
+			if err != nil {
+				return nil, err
+			}
+			if !strings.HasPrefix(absResolved+string(os.PathSeparator), absBase+string(os.PathSeparator)) {
 				return nil, fmt.Errorf("path %q escapes base directory", path)
 			}
 		}
