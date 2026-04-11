@@ -20,6 +20,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"time"
 )
 
 // Fetcher provides an abstraction on a file system.
@@ -32,6 +33,10 @@ type Fetcher interface {
 	Fetch(dir, path string) ([]byte, error)
 }
 
+// httpClient is used for all HTTP fetches. It has a timeout to prevent
+// the process from hanging on slow or unresponsive servers.
+var httpClient = &http.Client{Timeout: 10 * time.Second}
+
 type fetcher struct{}
 
 func (fetcher) Fetch(dir, path string) ([]byte, error) {
@@ -40,7 +45,7 @@ func (fetcher) Fetch(dir, path string) ([]byte, error) {
 		return os.ReadFile(path)
 	}
 
-	res, err := http.Get(path)
+	res, err := httpClient.Get(path)
 	if err != nil {
 		return nil, err
 	}
@@ -48,5 +53,6 @@ func (fetcher) Fetch(dir, path string) ([]byte, error) {
 	if res.StatusCode != http.StatusOK {
 		return nil, fmt.Errorf("status %s", res.Status)
 	}
-	return io.ReadAll(res.Body)
+	const maxResponseSize = 10 << 20 // 10 MiB
+	return io.ReadAll(io.LimitReader(res.Body, maxResponseSize))
 }
