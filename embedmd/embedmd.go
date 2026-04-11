@@ -93,6 +93,11 @@ type embedder struct {
 
 // checkPath returns an error if path is a local path that escapes dir.
 // URLs (http/https) are not checked.
+//
+// When dir is empty (e.g. when reading from stdin with no base directory set),
+// no restriction is applied: there is no meaningful boundary to enforce.
+// Callers should not feed untrusted markdown to embedmd without a base
+// directory set via WithBaseDir.
 func checkPath(dir, path string) error {
 	if strings.HasPrefix(path, "http://") || strings.HasPrefix(path, "https://") {
 		return nil
