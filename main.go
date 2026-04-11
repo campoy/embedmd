@@ -125,7 +125,7 @@ type file interface {
 
 // replaced by testing functions.
 var openFile = func(name string) (file, error) {
-	return os.OpenFile(name, os.O_RDWR, 0666)
+	return os.OpenFile(name, os.O_RDWR, 0644)
 }
 
 func processFile(path string, rewrite, doDiff bool) (foundDiff bool, err error) {

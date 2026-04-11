@@ -23,6 +23,29 @@ import (
 	"github.com/campoy/embedmd/internal/testutil"
 )
 
+func TestOpenFilePermissions(t *testing.T) {
+	f, err := os.CreateTemp(t.TempDir(), "embedmd-perm-*.md")
+	if err != nil {
+		t.Fatal(err)
+	}
+	name := f.Name()
+	f.Close()
+
+	got, err := os.OpenFile(name, os.O_RDWR, 0644)
+	if err != nil {
+		t.Fatalf("openFile: %v", err)
+	}
+	got.Close()
+
+	info, err := os.Stat(name)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if info.Mode()&0022 != 0 {
+		t.Errorf("file has group/world write bits set: %v", info.Mode())
+	}
+}
+
 func TestEmbedStreams(t *testing.T) {
 	tc := []struct {
 		name      string
