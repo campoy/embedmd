@@ -124,22 +124,13 @@ type file interface {
 }
 
 // replaced by testing functions.
-var (
-	openFile = func(name string) (file, error) {
-		return os.OpenFile(name, os.O_RDWR, 0)
-	}
-	statFile  = os.Stat
-	chmodFile = os.Chmod
-)
+var openFile = func(name string) (file, error) {
+	return os.OpenFile(name, os.O_RDWR, 0666)
+}
 
 func processFile(path string, rewrite, doDiff bool) (foundDiff bool, err error) {
 	if filepath.Ext(path) != ".md" {
 		return false, fmt.Errorf("not a markdown file")
-	}
-
-	info, err := statFile(path)
-	if err != nil {
-		return false, err
 	}
 
 	f, err := openFile(path)
@@ -173,10 +164,7 @@ func processFile(path string, rewrite, doDiff bool) (foundDiff bool, err error) 
 		if err != nil {
 			return false, fmt.Errorf("could not write: %v", err)
 		}
-		if err := f.Truncate(int64(n)); err != nil {
-			return false, err
-		}
-		return false, chmodFile(path, info.Mode())
+		return false, f.Truncate(int64(n))
 	}
 
 	_, err = io.Copy(stdout, buf)
