@@ -19,8 +19,8 @@
 // markdown is rendered, so they can be kept in the file as pointers
 // to the origin of the embedded text.
 //
-// The command receives a list of markdown files, if none is given it
-// reads from the standard input.
+// The command receives a list of markdown files to process. At least one
+// file must be provided; reading from standard input is not supported.
 //
 // embedmd supports two flags:
 // -d: will print the difference of the input file with what the output
@@ -77,10 +77,7 @@ func main() {
 	}
 }
 
-var (
-	stdout io.Writer = os.Stdout
-	stdin  io.Reader = os.Stdin
-)
+var stdout io.Writer = os.Stdout
 
 func embed(paths []string, rewrite, doDiff bool) (foundDiff bool, err error) {
 	if rewrite && doDiff {
@@ -88,23 +85,7 @@ func embed(paths []string, rewrite, doDiff bool) (foundDiff bool, err error) {
 	}
 
 	if len(paths) == 0 {
-		if rewrite {
-			return false, fmt.Errorf("error: cannot use -w with standard input")
-		}
-		if !doDiff {
-			return false, embedmd.Process(stdout, stdin)
-		}
-
-		var out, in bytes.Buffer
-		if err := embedmd.Process(&out, io.TeeReader(stdin, &in)); err != nil {
-			return false, err
-		}
-		d, err := diff(in.String(), out.String())
-		if err != nil || len(d) == 0 {
-			return false, err
-		}
-		fmt.Fprintf(stdout, "%s", d)
-		return true, nil
+		return false, fmt.Errorf("error: no markdown files provided")
 	}
 
 	for _, path := range paths {
