@@ -243,6 +243,37 @@ func TestProcess(t *testing.T) {
 			err: "2: could not read https://fakeurl.com\\main.go: parse \"https://fakeurl.com\\\\main.go\": invalid character \"\\\\\" in host name",
 		},
 		{
+			name: "path traversal rejected when base dir is set",
+			dir:  "sample",
+			in: "# Header\n" +
+				"[embedmd]:# (../secret.go)\n" +
+				"Yay!\n",
+			files: map[string][]byte{"secret.go": []byte(content)},
+			err:   `2: could not read ../secret.go: path "../secret.go" escapes base directory`,
+		},
+		{
+			name: "deeply nested path traversal rejected",
+			dir:  "a/b/c",
+			in: "# Header\n" +
+				"[embedmd]:# (../../../secret.go)\n" +
+				"Yay!\n",
+			err: `2: could not read ../../../secret.go: path "../../../secret.go" escapes base directory`,
+		},
+		{
+			name: "normal relative path within base dir still works",
+			dir:  "sample",
+			in: "# This is some markdown\n" +
+				"[embedmd]:# (code.go)\n" +
+				"Yay!\n",
+			files: map[string][]byte{"sample/code.go": []byte(content)},
+			out: "# This is some markdown\n" +
+				"[embedmd]:# (code.go)\n" +
+				"```go\n" +
+				string(content) +
+				"```\n" +
+				"Yay!\n",
+		},
+		{
 			name: "ignore commands in code blocks",
 			in: "# This is some markdown\n" +
 				"```markdown\n" +
@@ -285,8 +316,8 @@ type mixedContentProvider struct {
 
 func (c mixedContentProvider) Fetch(dir, path string) ([]byte, error) {
 	if !strings.HasPrefix(path, "http://") && !strings.HasPrefix(path, "https://") {
-		path = filepath.Join(dir, filepath.FromSlash(path))
-		if f, ok := c.files[path]; ok {
+		resolved := filepath.Join(dir, filepath.FromSlash(path))
+		if f, ok := c.files[resolved]; ok {
 			return f, nil
 		}
 		return nil, os.ErrNotExist
