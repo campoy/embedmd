@@ -54,7 +54,10 @@ package embedmd
 import (
 	"fmt"
 	"io"
+	"os"
+	"path/filepath"
 	"regexp"
+	"strings"
 )
 
 // Process reads markdown from the given io.Reader searching for an embedmd
@@ -88,7 +91,33 @@ type embedder struct {
 	baseDir string
 }
 
+// checkPath returns an error if path is a local path that escapes dir.
+// URLs (http/https) are not checked.
+func checkPath(dir, path string) error {
+	if strings.HasPrefix(path, "http://") || strings.HasPrefix(path, "https://") {
+		return nil
+	}
+	if dir == "" {
+		return nil
+	}
+	absResolved, err := filepath.Abs(filepath.Join(dir, filepath.FromSlash(path)))
+	if err != nil {
+		return err
+	}
+	absBase, err := filepath.Abs(dir)
+	if err != nil {
+		return err
+	}
+	if !strings.HasPrefix(absResolved+string(os.PathSeparator), absBase+string(os.PathSeparator)) {
+		return fmt.Errorf("path %q escapes base directory", path)
+	}
+	return nil
+}
+
 func (e *embedder) runCommand(w io.Writer, cmd *command) error {
+	if err := checkPath(e.baseDir, cmd.path); err != nil {
+		return fmt.Errorf("could not read %s: %v", cmd.path, err)
+	}
 	b, err := e.Fetch(e.baseDir, cmd.path)
 	if err != nil {
 		return fmt.Errorf("could not read %s: %v", cmd.path, err)
