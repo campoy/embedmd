@@ -34,6 +34,7 @@ package main
 
 import (
 	"bytes"
+	"context"
 	"flag"
 	"fmt"
 	"io"
@@ -41,7 +42,7 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/campoy/embedmd/embedmd"
+	"github.com/campoy/embedmd/v2/embedmd"
 	"github.com/pmezard/go-difflib/difflib"
 )
 
@@ -90,11 +91,11 @@ func embed(paths []string, rewrite, doDiff bool) (foundDiff bool, err error) {
 			return false, fmt.Errorf("error: cannot use -w with standard input")
 		}
 		if !doDiff {
-			return false, embedmd.Process(stdout, stdin)
+			return false, embedmd.Process(context.Background(), stdout, stdin)
 		}
 
 		var out, in bytes.Buffer
-		if err := embedmd.Process(&out, io.TeeReader(stdin, &in)); err != nil {
+		if err := embedmd.Process(context.Background(), &out, io.TeeReader(stdin, &in)); err != nil {
 			return false, err
 		}
 		d, err := diff(in.String(), out.String())
@@ -147,7 +148,7 @@ func processFile(path string, rewrite, doDiff bool) (foundDiff bool, err error) 
 	defer f.Close()
 
 	buf := new(bytes.Buffer)
-	if err := embedmd.Process(buf, f, embedmd.WithBaseDir(filepath.Dir(path))); err != nil {
+	if err := embedmd.Process(context.Background(), buf, f, embedmd.WithBaseDir(filepath.Dir(path))); err != nil {
 		return false, err
 	}
 
