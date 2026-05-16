@@ -15,6 +15,7 @@ package embedmd
 
 import (
 	"bytes"
+	"context"
 	"fmt"
 	"net/url"
 	"os"
@@ -266,7 +267,7 @@ func TestProcess(t *testing.T) {
 			if tt.dir != "" {
 				opts = append(opts, WithBaseDir(tt.dir))
 			}
-			err := Process(&out, strings.NewReader(tt.in), opts...)
+			err := Process(context.Background(), &out, strings.NewReader(tt.in), opts...)
 			if !eqErr(t, tt.name, err, tt.err) {
 				return
 			}
